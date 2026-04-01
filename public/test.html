@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Тест загрузки изображений</title>
+</head>
+<body>
+    <h1>Тест доступности изображений</h1>
+    <div id="results"></div>
+    
+    <script>
+        const testFiles = [
+            'assets/furniture/base/wall/wall_NE.png',
+            'assets/furniture/bathroom/toilet/toilet_NE.png',
+            'assets/furniture/bedroom/bedDouble/bedDouble_NE.png',
+            'assets/furniture/kitchen/kitchenStove/kitchenStove_NE.png',
+            'assets/furniture/livingroom/loungeSofa/loungeSofa_NE.png'
+        ];
+        
+        async function testAll() {
+            const results = document.getElementById('results');
+            
+            for (const file of testFiles) {
+                const div = document.createElement('div');
+                try {
+                    const response = await fetch(file);
+                    if (response.ok) {
+                        div.innerHTML = `✅ ${file} - ДОСТУПЕН`;
+                        div.style.color = 'green';
+                    } else {
+                        div.innerHTML = `❌ ${file} - НЕ ДОСТУПЕН (${response.status})`;
+                        div.style.color = 'red';
+                    }
+                } catch (e) {
+                    div.innerHTML = `❌ ${file} - ОШИБКА: ${e.message}`;
+                    div.style.color = 'red';
+                }
+                results.appendChild(div);
+            }
+        }
+        
+        testAll();
+    </script>
+</body>
+</html>

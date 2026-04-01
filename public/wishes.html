@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>HomeSpace - Магазин желаний</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* Анимированный фон */
+        body::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 20% 50%, rgba(78, 204, 163, 0.15) 0%, transparent 50%);
+            animation: pulse 8s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        body::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 80% 80%, rgba(255, 215, 0, 0.1) 0%, transparent 50%);
+            animation: pulse 12s ease-in-out infinite reverse;
+            pointer-events: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.1); }
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Кнопка назад */
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(78, 204, 163, 0.5);
+            border-radius: 40px;
+            padding: 10px 20px;
+            color: white;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .back-btn:hover {
+            background: rgba(78, 204, 163, 0.3);
+            border-color: #4ecca3;
+            transform: translateX(-3px);
+        }
+
+        /* Заголовок */
+        .header {
+            text-align: center;
+            padding: 30px 0 20px;
+        }
+
+        .header h1 {
+            font-size: 48px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ffd700, #4ecca3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            color: rgba(255, 255, 255, 0.7);
+            margin-top: 10px;
+        }
+
+        /* Панель бонусов */
+        .bonus-panel {
+            background: linear-gradient(135deg, rgba(0,0,0,0.5), rgba(78,204,163,0.1));
+            backdrop-filter: blur(10px);
+            border-radius: 30px;
+            padding: 20px 30px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-avatar {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #4ecca3, #ffd700);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            box-shadow: 0 4px 15px rgba(78, 204, 163, 0.3);
+        }
+
+        .user-details h3 {
+            color: white;
+            font-size: 18px;
+        }
+
+        .user-details p {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .bonus-card {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 20px;
+            padding: 10px 25px;
+            text-align: center;
+            border: 1px solid #ffd700;
+        }
+
+        .bonus-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .bonus-value {
+            font-size: 36px;
+            font-weight: 800;
+            color: #ffd700;
+        }
+
+        /* Вкладки */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .tab-btn {
+            background: rgba(44, 62, 80, 0.8);
+            border: 1px solid rgba(78, 204, 163, 0.3);
+            padding: 12px 30px;
+            border-radius: 40px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, #4ecca3, #3ba87f);
+            border-color: transparent;
+        }
+
+        .tab-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Кнопка создания */
+        .create-wish-btn {
+            background: linear-gradient(135deg, #ffd700, #e6b800);
+            border: none;
+            padding: 12px 30px;
+            border-radius: 40px;
+            color: #1a1a2e;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            margin-bottom: 25px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .create-wish-btn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 5px 20px rgba(255, 215, 0, 0.4);
+        }
+
+        /* Список желаний */
+        .wishes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+        }
+
+        .wish-card {
+            background: rgba(15, 15, 26, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            padding: 20px;
+            border: 1px solid rgba(78, 204, 163, 0.2);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .wish-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(78, 204, 163, 0.5);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .wish-card.pending {
+            border-left: 4px solid #ffd700;
+        }
+
+        .wish-card.purchased {
+            opacity: 0.7;
+            border-left: 4px solid #4ecca3;
+        }
+
+        .wish-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .wish-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 8px;
+        }
+
+        .wish-description {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+
+        .wish-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .wish-price {
+            background: rgba(255, 215, 0, 0.2);
+            padding: 5px 12px;
+            border-radius: 20px;
+            color: #ffd700;
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        .wish-creator {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .wish-status {
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: rgba(0,0,0,0.5);
+        }
+
+        .wish-status.approved {
+            background: rgba(78, 204, 163, 0.2);
+            color: #4ecca3;
+        }
+
+        .wish-status.pending {
+            background: rgba(255, 215, 0, 0.2);
+            color: #ffd700;
+        }
+
+        .wish-status.purchased {
+            background: rgba(78, 204, 163, 0.1);
+            color: #4ecca3;
+        }
+
+        .wish-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .buy-btn {
+            flex: 1;
+            background: linear-gradient(135deg, #4ecca3, #3ba87f);
+            border: none;
+            padding: 10px;
+            border-radius: 30px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .buy-btn.disabled {
+            background: #666;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .approve-btn {
+            background: rgba(78, 204, 163, 0.2);
+            border: 1px solid #4ecca3;
+            padding: 8px 15px;
+            border-radius: 30px;
+            color: #4ecca3;
+            cursor: pointer;
+        }
+
+        .reject-btn {
+            background: rgba(233, 69, 96, 0.2);
+            border: 1px solid #e94560;
+            padding: 8px 15px;
+            border-radius: 30px;
+            color: #e94560;
+            cursor: pointer;
+        }
+
+        .price-input {
+            background: rgba(0,0,0,0.5);
+            border: 1px solid #ffd700;
+            border-radius: 30px;
+            padding: 8px 12px;
+            color: #ffd700;
+            width: 80px;
+            text-align: center;
+        }
+
+        /* Модальное окно */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: rgba(26, 26, 46, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 30px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            border: 1px solid rgba(78, 204, 163, 0.5);
+        }
+
+        .modal-content h3 {
+            color: white;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        .modal-content input,
+        .modal-content textarea {
+            width: 100%;
+            padding: 12px 15px;
+            margin-bottom: 15px;
+            background: rgba(44, 62, 80, 0.8);
+            border: 1px solid rgba(78, 204, 163, 0.3);
+            border-radius: 12px;
+            color: white;
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .modal-content textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .icons-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .icon-option {
+            font-size: 32px;
+            padding: 8px;
+            cursor: pointer;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .icon-option.selected {
+            background: rgba(78, 204, 163, 0.3);
+            transform: scale(1.1);
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .modal-save {
+            background: #4ecca3;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 30px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .modal-cancel {
+            background: rgba(233, 69, 96, 0.2);
+            border: 1px solid #e94560;
+            padding: 10px 25px;
+            border-radius: 30px;
+            color: #e94560;
+            cursor: pointer;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px;
+            background: rgba(15, 15, 26, 0.6);
+            border-radius: 20px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            .header h1 {
+                font-size: 32px;
+            }
+            .bonus-panel {
+                flex-direction: column;
+                text-align: center;
+            }
+            .wishes-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div style="display: flex; gap: 10px; position: fixed; top: 20px; left: 20px; z-index: 100;">
+        <button class="back-btn" id="close-btn" style="background: rgba(233, 69, 96, 0.8); border-color: #e94560; position: relative; top: 0; left: 0;">
+            ✕ Закрыть
+        </button>
+        <button class="back-btn" id="menu-btn" onclick="window.location.href='/'">
+            ← Назад в меню
+        </button>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>🎁 Магазин желаний</h1>
+            <p>Копи бонусы и исполняй свои мечты!</p>
+        </div>
+
+        <div class="bonus-panel" id="bonus-panel">
+            <div class="user-info">
+                <div class="user-avatar" id="user-avatar">👤</div>
+                <div class="user-details">
+                    <h3 id="user-name">Загрузка...</h3>
+                    <p id="user-role"></p>
+                </div>
+            </div>
+            <div class="bonus-card">
+                <div class="bonus-label">💰 Мои бонусы</div>
+                <div class="bonus-value" id="user-bonuses">0</div>
+            </div>
+        </div>
+
+        <div class="tabs" id="tabs">
+            <button class="tab-btn active" data-tab="shop">🛍️ Доступные</button>
+            <button class="tab-btn" data-tab="create">✨ Новое желание</button>
+            <button class="tab-btn" data-tab="history">📜 История</button>
+        </div>
+
+        <div style="text-align: center;" id="admin-tab-container"></div>
+
+        <div id="content-container"></div>
+    </div>
+
+    <!-- Модальное окно одобрения -->
+    <div class="modal" id="approve-modal">
+        <div class="modal-content">
+            <h3>✅ Одобрить желание</h3>
+            <input type="number" id="approve-price" placeholder="Цена в бонусах" value="50">
+            <div class="modal-buttons">
+                <button class="modal-cancel" id="approve-cancel">Отмена</button>
+                <button class="modal-save" id="approve-confirm">Одобрить</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3001/api';
+        let token = localStorage.getItem('homespace_token');
+        let currentUser = null;
+        let wishes = [];
+        let currentTab = 'shop';
+        let selectedIcon = '🎁';
+        let pendingApproveWish = null;
+
+        function closeWebView() {
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage('close-webview', '*');
+            } else {
+                window.location.href = '/';
+            }
+        }
+
+        // Настройка кнопки закрытия после загрузки DOM
+        document.addEventListener('DOMContentLoaded', () => {
+            const closeBtn = document.getElementById('close-btn');
+            if (closeBtn) {
+                closeBtn.onclick = closeWebView;
+            }
+        });
+        // Адаптация к размеру окна в WebView
+    function handleResize() {
+        // Если мы внутри iframe, сообщаем родителю о готовности
+        if (window.parent && window.parent !== window) {
+            // Сообщаем, что страница загружена
+            window.parent.postMessage('ready', '*');
+        }
+        
+        // Адаптируем контейнер под размер iframe
+        const container = document.querySelector('.container');
+        if (container && window.innerWidth < 768) {
+            container.style.padding = '15px';
+        }
+    }
+    
+    // Слушаем сообщения от родителя
+    window.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'resize') {
+            // Обновляем размеры при необходимости
+            document.body.style.margin = '0';
+            document.body.style.padding = '0';
+        }
+    });
+    
+    // Запускаем при загрузке
+    window.addEventListener('load', handleResize);
+    window.addEventListener('resize', handleResize);
+    handleResize();
+
+        // Инициализация
+        async function init() {
+            await loadCurrentUser();
+            if (!token || !currentUser) {
+                window.location.href = '/';
+                return;
+            }
+            setupEventListeners();
+            await loadWishes();
+        }
+
+        async function loadCurrentUser() {
+            const saved = localStorage.getItem('homespace_currentUser');
+            if (saved) {
+                try {
+                    currentUser = JSON.parse(saved);
+                    token = localStorage.getItem('homespace_token');
+                    
+                    document.getElementById('user-name').textContent = currentUser.name || 'Пользователь';
+                    document.getElementById('user-avatar').textContent = currentUser.avatar || '👤';
+                    document.getElementById('user-bonuses').textContent = currentUser.bonuses || 0;
+                    
+                    const roleText = currentUser.role === 'parent' ? '👑 Родитель' : '🧒 Ребёнок';
+                    document.getElementById('user-role').textContent = roleText;
+                    
+                    // Показываем вкладку для админа
+                    if (currentUser.role === 'parent' || currentUser.role === 'admin') {
+                        const adminTab = document.createElement('button');
+                        adminTab.className = 'tab-btn';
+                        adminTab.dataset.tab = 'pending';
+                        adminTab.textContent = '⏳ На одобрении';
+                        document.getElementById('admin-tab-container').appendChild(adminTab);
+                        
+                        adminTab.addEventListener('click', () => {
+                            setActiveTab('pending');
+                            renderContent();
+                        });
+                    }
+                } catch (e) {
+                    console.error('Ошибка загрузки пользователя:', e);
+                }
+            }
+        }
+
+        async function loadWishes() {
+            try {
+                let url = `${API_URL}/wishes?`;
+                if (currentTab === 'shop') {
+                    url += 'status=approved';
+                } else if (currentTab === 'pending') {
+                    url += 'status=pending';
+                } else if (currentTab === 'history') {
+                    url += 'status=purchased';
+                }
+                
+                const response = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!response.ok) throw new Error('Ошибка загрузки');
+                
+                wishes = await response.json();
+                renderContent();
+            } catch (error) {
+                console.error('Ошибка загрузки желаний:', error);
+                document.getElementById('content-container').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">❌</div>
+                        <div>Ошибка загрузки желаний</div>
+                    </div>
+                `;
+            }
+        }
+
+        function renderContent() {
+            const container = document.getElementById('content-container');
+            
+            if (currentTab === 'create') {
+                renderCreateForm(container);
+                return;
+            }
+            
+            let filteredWishes = [];
+            if (currentTab === 'shop') {
+                filteredWishes = wishes.filter(w => w.status === 'approved' && !w.purchased_by);
+            } else if (currentTab === 'pending') {
+                filteredWishes = wishes.filter(w => w.status === 'pending');
+            } else if (currentTab === 'history') {
+                filteredWishes = wishes.filter(w => w.status === 'purchased');
+            }
+            
+            if (filteredWishes.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🎁</div>
+                        <div>
+                            ${currentTab === 'shop' ? 'Нет доступных желаний' : 
+                              currentTab === 'pending' ? 'Нет желаний на одобрении' : 
+                              'История покупок пуста'}
+                        </div>
+                        ${currentTab === 'shop' ? '<div style="font-size:12px; margin-top:8px;">Создайте новое желание!</div>' : ''}
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = '<div class="wishes-grid" id="wishes-grid"></div>';
+            const grid = document.getElementById('wishes-grid');
+            
+            filteredWishes.forEach(wish => {
+                const canAfford = currentTab === 'shop' && (currentUser?.bonuses || 0) >= (wish.approved_price || wish.price);
+                const isPending = wish.status === 'pending';
+                const isPurchased = wish.status === 'purchased';
+                
+                const card = document.createElement('div');
+                card.className = `wish-card ${isPending ? 'pending' : ''} ${isPurchased ? 'purchased' : ''}`;
+                
+                card.innerHTML = `
+                    <div class="wish-icon">${wish.icon || '🎁'}</div>
+                    <div class="wish-title">${escapeHtml(wish.title)}</div>
+                    ${wish.description ? `<div class="wish-description">${escapeHtml(wish.description)}</div>` : ''}
+                    <div class="wish-meta">
+                        <span class="wish-price">${wish.approved_price || wish.price}💰</span>
+                        <span class="wish-creator">👤 ${escapeHtml(wish.created_by_name || 'Неизвестно')}</span>
+                        <span class="wish-status ${wish.status}">${getStatusText(wish.status)}</span>
+                    </div>
+                    <div class="wish-actions" id="actions-${wish.id}">
+                        ${renderActions(wish, canAfford)}
+                    </div>
+                `;
+                
+                grid.appendChild(card);
+                
+                // Добавляем обработчики для кнопок
+                if (currentTab === 'shop' && !isPurchased) {
+                    const buyBtn = document.getElementById(`buy-${wish.id}`);
+                    if (buyBtn && canAfford) {
+                        buyBtn.onclick = () => buyWish(wish);
+                    }
+                }
+                
+                if (currentTab === 'pending') {
+                    const approveBtn = document.getElementById(`approve-${wish.id}`);
+                    const rejectBtn = document.getElementById(`reject-${wish.id}`);
+                    const priceInput = document.getElementById(`price-${wish.id}`);
+                    
+                    if (approveBtn) approveBtn.onclick = () => showApproveModal(wish, priceInput?.value);
+                    if (rejectBtn) rejectBtn.onclick = () => rejectWish(wish);
+                }
+            });
+        }
+
+        function renderActions(wish, canAfford) {
+            if (currentTab === 'shop') {
+                if (canAfford) {
+                    return `<button class="buy-btn" id="buy-${wish.id}">🎁 Купить</button>`;
+                } else {
+                    const need = (wish.approved_price || wish.price) - (currentUser?.bonuses || 0);
+                    return `<button class="buy-btn disabled" disabled>Не хватает ${need}💰</button>`;
+                }
+            }
+            
+            if (currentTab === 'pending') {
+                return `
+                    <input type="number" class="price-input" id="price-${wish.id}" value="${wish.approved_price || wish.price}" step="5">
+                    <button class="approve-btn" id="approve-${wish.id}">✅ Одобрить</button>
+                    <button class="reject-btn" id="reject-${wish.id}">❌ Отклонить</button>
+                `;
+            }
+            
+            if (currentTab === 'history') {
+                const date = wish.purchased_at ? new Date(wish.purchased_at).toLocaleDateString() : '';
+                return `<div style="font-size:12px; color:#888;">📅 ${date}<br>Купил: ${escapeHtml(wish.purchased_by_name || wish.created_by_name)}</div>`;
+            }
+            
+            return '';
+        }
+
+        function renderCreateForm(container) {
+            const icons = ['🎮', '🍕', '📚', '🎬', '🧸', '👕', '🚗', '🏀', '🎨', '🎵', '🐱', '🌸', '⭐', '🌈', '💎', '🕹️', '📱', '✈️'];
+            
+            container.innerHTML = `
+                <div style="max-width: 500px; margin: 0 auto;">
+                    <div style="background: rgba(15,15,26,0.9); backdrop-filter: blur(10px); border-radius: 30px; padding: 30px; border: 1px solid rgba(78,204,163,0.3);">
+                        <h3 style="color: #ffd700; margin-bottom: 20px; text-align: center;">✨ Создать новое желание</h3>
+                        
+                        <input type="text" id="wish-title" placeholder="Название желания" autocomplete="off">
+                        <textarea id="wish-description" placeholder="Описание (необязательно)"></textarea>
+                        
+                        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+                            <span style="color: white;">💰 Цена:</span>
+                            <button class="bonus-btn" id="price-minus" style="width: 40px; height: 40px; border-radius: 50%; background: rgba(233,69,96,0.2); border: 1px solid #e94560; color: #e94560; font-size: 20px; cursor: pointer;">-</button>
+                            <input type="number" id="wish-price" value="50" style="width: 100px; text-align: center;">
+                            <button class="bonus-btn" id="price-plus" style="width: 40px; height: 40px; border-radius: 50%; background: rgba(78,204,163,0.2); border: 1px solid #4ecca3; color: #4ecca3; font-size: 20px; cursor: pointer;">+</button>
+                        </div>
+                        
+                        <div style="margin-bottom: 20px;">
+                            <div style="color: white; margin-bottom: 10px;">🎨 Выбери иконку:</div>
+                            <div class="icons-grid" id="icons-grid"></div>
+                        </div>
+                        
+                        <div class="modal-buttons" style="justify-content: center;">
+                            <button class="modal-save" id="submit-wish">✨ Отправить желание</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Иконки
+            const iconsGrid = document.getElementById('icons-grid');
+            icons.forEach(icon => {
+                const iconDiv = document.createElement('div');
+                iconDiv.className = `icon-option ${icon === selectedIcon ? 'selected' : ''}`;
+                iconDiv.textContent = icon;
+                iconDiv.onclick = () => {
+                    document.querySelectorAll('.icon-option').forEach(el => el.classList.remove('selected'));
+                    iconDiv.classList.add('selected');
+                    selectedIcon = icon;
+                };
+                iconsGrid.appendChild(iconDiv);
+            });
+            
+            // Управление ценой
+            document.getElementById('price-minus').onclick = () => {
+                const input = document.getElementById('wish-price');
+                let val = parseInt(input.value) || 50;
+                if (val > 5) input.value = val - 5;
+            };
+            document.getElementById('price-plus').onclick = () => {
+                const input = document.getElementById('wish-price');
+                let val = parseInt(input.value) || 50;
+                input.value = val + 5;
+            };
+            
+            // Отправка
+            document.getElementById('submit-wish').onclick = async () => {
+                const title = document.getElementById('wish-title').value.trim();
+                if (!title) {
+                    alert('Введите название желания');
+                    return;
+                }
+                
+                await createWish({
+                    title: title,
+                    description: document.getElementById('wish-description').value,
+                    price: parseInt(document.getElementById('wish-price').value) || 50,
+                    icon: selectedIcon
+                });
+            };
+        }
+
+        async function createWish(wishData) {
+            try {
+                const response = await fetch(`${API_URL}/wishes`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(wishData)
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Ошибка создания');
+                }
+                
+                alert(currentUser?.role === 'parent' ? '✨ Желание создано!' : '✨ Желание отправлено на одобрение!');
+                setActiveTab('shop');
+                await loadWishes();
+            } catch (error) {
+                console.error('Ошибка создания:', error);
+                alert('❌ ' + error.message);
+            }
+        }
+
+        async function buyWish(wish) {
+            const price = wish.approved_price || wish.price;
+            
+            if ((currentUser?.bonuses || 0) < price) {
+                alert(`❌ Недостаточно бонусов! Нужно ещё ${price - (currentUser?.bonuses || 0)}💰`);
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}/wishes/${wish.id}/purchase`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Ошибка покупки');
+                }
+                
+                const result = await response.json();
+                
+                // Обновляем бонусы
+                currentUser.bonuses = result.newBalance;
+                localStorage.setItem('homespace_currentUser', JSON.stringify(currentUser));
+                document.getElementById('user-bonuses').textContent = result.newBalance;
+                
+                alert(`🎉 Поздравляем! Вы купили: ${wish.title}! 🎉`);
+                await loadWishes();
+            } catch (error) {
+                console.error('Ошибка покупки:', error);
+                alert('❌ ' + error.message);
+            }
+        }
+
+        async function approveWish(wish, price) {
+            try {
+                const response = await fetch(`${API_URL}/wishes/${wish.id}/approve`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ price: parseInt(price) })
+                });
+                
+                if (!response.ok) throw new Error('Ошибка одобрения');
+                
+                alert(`✅ Желание "${wish.title}" одобрено за ${price} бонусов!`);
+                await loadWishes();
+            } catch (error) {
+                console.error('Ошибка одобрения:', error);
+                alert('❌ ' + error.message);
+            }
+        }
+
+        async function rejectWish(wish) {
+            if (!confirm(`Отклонить желание "${wish.title}"?`)) return;
+            
+            try {
+                const response = await fetch(`${API_URL}/wishes/${wish.id}/reject`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                alert('❌ Желание отклонено');
+                await loadWishes();
+            } catch (error) {
+                console.error('Ошибка отклонения:', error);
+                alert('❌ ' + error.message);
+            }
+        }
+
+        function showApproveModal(wish, currentPrice) {
+            pendingApproveWish = wish;
+            const modal = document.getElementById('approve-modal');
+            const priceInput = document.getElementById('approve-price');
+            priceInput.value = currentPrice || wish.price || 50;
+            modal.classList.add('active');
+        }
+
+        function setupEventListeners() {
+            // Вкладки
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    setActiveTab(btn.dataset.tab);
+                    renderContent();
+                });
+            });
+            
+            // Модальное окно одобрения
+            document.getElementById('approve-cancel').onclick = () => {
+                document.getElementById('approve-modal').classList.remove('active');
+                pendingApproveWish = null;
+            };
+            
+            document.getElementById('approve-confirm').onclick = async () => {
+                const price = document.getElementById('approve-price').value;
+                if (pendingApproveWish) {
+                    await approveWish(pendingApproveWish, price);
+                    document.getElementById('approve-modal').classList.remove('active');
+                    pendingApproveWish = null;
+                }
+            };
+            
+            // Закрытие модалки по клику вне
+            document.getElementById('approve-modal').onclick = (e) => {
+                if (e.target === document.getElementById('approve-modal')) {
+                    document.getElementById('approve-modal').classList.remove('active');
+                }
+            };
+        }
+
+        function setActiveTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                if (btn.dataset.tab === tab) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+
+        function getStatusText(status) {
+            switch(status) {
+                case 'approved': return '✅ Одобрено';
+                case 'pending': return '⏳ На одобрении';
+                case 'purchased': return '🎁 Куплено';
+                default: return status;
+            }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Запуск
+        init();
+    </script>
+</body>
+</html>

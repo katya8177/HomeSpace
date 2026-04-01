@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HomeSpace - Редактор комнаты</title>
+    <link rel="stylesheet" href="/public/css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #1a1a2e;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Inter', Arial, sans-serif;
+        }
+        #game-container {
+            width: 1280px;
+            height: 800px;
+            position: relative;
+        }
+        #game {
+            width: 100%;
+            height: 100%;
+        }
+        .back-to-menu {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(78, 204, 163, 0.5);
+            border-radius: 40px;
+            padding: 10px 20px;
+            color: white;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+        .back-to-menu:hover {
+            background: rgba(78, 204, 163, 0.3);
+            border-color: #4ecca3;
+            transform: translateX(-3px);
+        }
+    </style>
+</head>
+<body>
+    <a href="/public/index.html" class="back-to-menu">
+        ← Назад в меню
+    </a>
+    <div id="game-container">
+        <div id="game"></div>
+        <div id="ui-root" aria-live="polite">
+            <aside id="furniture-panel" class="panel panel--left" data-open="true">
+                <div class="panel__header">
+                    <div class="panel__title">Мебель</div>
+                    <button id="furniture-toggle" class="icon-btn" type="button" aria-label="Свернуть панель">⟨</button>
+                </div>
+                <div class="panel__body">
+                    <div class="row row--wrap">
+                        <button id="snap-toggle" class="chip" type="button" aria-pressed="false" title="Привязка к сетке (G)">🧲 Сетка: выкл</button>
+                        <button id="delete-selected" class="chip chip--danger" type="button" title="Удалить выбранный предмет (DEL)">🗑 Удалить</button>
+                    </div>
+                    <div class="row row--wrap">
+                        <label class="label">Комната</label>
+                        <select id="room-select" class="select"></select>
+                        <button id="room-new" class="chip" type="button">＋</button>
+                    </div>
+                    <div class="row row--wrap">
+                        <label class="label">Фон</label>
+                        <select id="bg-select" class="select"></select>
+                    </div>
+                    <div class="row">
+                        <input id="furniture-search" class="input" type="search" placeholder="Поиск мебели…" />
+                    </div>
+                    <div id="furniture-categories" class="chips" role="tablist" aria-label="Категории мебели"></div>
+                    <div id="furniture-list" class="furniture-list" role="list"></div>
+                </div>
+            </aside>
+        </div>
+    </div>
+    <script type="module" src="/src/game.js"></script>
+</body>
+</html>
