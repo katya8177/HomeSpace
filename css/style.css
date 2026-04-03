@@ -67,9 +67,10 @@ canvas {
 #ui-root {
     position: absolute;
     inset: 0;
-    pointer-events: none;
-    display: none;
-    z-index: 120;
+    /* display: none; */
+    display: block;
+    pointer-events: auto !important;
+    z-index: 200;
 }
 
 .panel {
@@ -113,6 +114,12 @@ canvas {
     overflow: hidden;
     backdrop-filter: blur(10px);
     box-shadow: 0 18px 40px rgba(0,0,0,0.35);
+}
+
+.panel button,
+.panel .chip,
+.panel .furniture-item {
+    pointer-events: auto !important;
 }
 
 .panel[data-open="false"] {
