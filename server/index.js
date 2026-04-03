@@ -4,12 +4,23 @@ import cors from 'cors';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { query, testConnection, pool } from './db.js';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const uploadsDir = path.join(__dirname, '..', 'public', 'assets', 'uploads');
+const passwordResetCodes = new Map();
+
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
 // Middleware
 app.use(cors({
@@ -17,6 +28,7 @@ app.use(cors({
     credentials: true
 }));
 app.use(express.json());
+app.use('/assets/uploads', express.static(uploadsDir));
 
 // =====================================================
 // АУТЕНТИФИКАЦИЯ
@@ -284,6 +296,64 @@ app.post('/api/auth/login', async (req, res) => {
             success: false, 
             error: 'Ошибка сервера при входе' 
         });
+    }
+});
+
+// Запрос кода восстановления пароля
+app.post('/api/auth/forgot-password', async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email) {
+            return res.status(400).json({ error: 'Email обязателен' });
+        }
+
+        const users = await query('SELECT id, email FROM users WHERE email = ?', [email]);
+        if (users.length === 0) {
+            // Не раскрываем факт существования пользователя
+            return res.json({ success: true, message: 'Если email существует, код отправлен' });
+        }
+
+        const code = `${Math.floor(100000 + Math.random() * 900000)}`;
+        passwordResetCodes.set(email.toLowerCase(), {
+            code,
+            expiresAt: Date.now() + 10 * 60 * 1000
+        });
+
+        // В проекте нет настроенного почтового сервиса, поэтому код логируется
+        // и может быть подключен к реальной рассылке без изменений API.
+        console.log(`Password reset code for ${email}: ${code}`);
+
+        return res.json({ success: true, message: 'Код отправлен на email' });
+    } catch (error) {
+        console.error('Ошибка восстановления пароля:', error);
+        return res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+// Подтверждение кода и смена пароля
+app.post('/api/auth/reset-password', async (req, res) => {
+    try {
+        const { email, code, newPassword } = req.body;
+        if (!email || !code || !newPassword) {
+            return res.status(400).json({ error: 'Недостаточно данных' });
+        }
+        if (newPassword.length < 3) {
+            return res.status(400).json({ error: 'Пароль должен быть минимум 3 символа' });
+        }
+
+        const entry = passwordResetCodes.get(email.toLowerCase());
+        if (!entry || entry.expiresAt < Date.now() || entry.code !== String(code).trim()) {
+            return res.status(400).json({ error: 'Неверный или просроченный код' });
+        }
+
+        const passwordHash = await bcrypt.hash(newPassword, 10);
+        await query('UPDATE users SET password_hash = ? WHERE email = ?', [passwordHash, email]);
+        passwordResetCodes.delete(email.toLowerCase());
+
+        return res.json({ success: true, message: 'Пароль обновлён' });
+    } catch (error) {
+        console.error('Ошибка сброса пароля:', error);
+        return res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
 
@@ -1003,10 +1073,20 @@ app.post('/api/chat', authenticate, async (req, res) => {
 app.post('/api/rooms', authenticate, async (req, res) => {
     try {
         const { name, data, width, height, gridSize } = req.body;
+        const safeName = (name || 'Моя комната').trim();
+        if (!data || typeof data !== 'object') {
+            return res.status(400).json({ error: 'Некорректные данные комнаты' });
+        }
+        console.log('save room request:', {
+            userId: req.user.id,
+            familyId: req.user.familyId || null,
+            name: safeName,
+            items: Array.isArray(data?.items) ? data.items.length : 0
+        });
         
         const existing = await query(
             'SELECT id FROM rooms WHERE user_id = ? AND name = ?',
-            [req.user.id, name || 'default']
+            [req.user.id, safeName]
         );
         
         let roomId;
@@ -1029,7 +1109,7 @@ app.post('/api/rooms', authenticate, async (req, res) => {
                     roomId,
                     req.user.id,
                     req.user.familyId || null,
-                    name || 'default',
+                    safeName,
                     JSON.stringify(data),
                     width || 20,
                     height || 15,
@@ -1043,6 +1123,7 @@ app.post('/api/rooms', authenticate, async (req, res) => {
             [roomId]
         );
 
+        console.log('save room success:', { roomId, name: safeName });
         res.json(rooms[0]);
         
     } catch (error) {
@@ -1052,7 +1133,7 @@ app.post('/api/rooms', authenticate, async (req, res) => {
 });
 
 // Получить комнату
-app.get('/api/rooms/:name', authenticate, async (req, res) => {
+app.get('/api/rooms/by-name/:name', authenticate, async (req, res) => {
     try {
         const rooms = await query(
             'SELECT * FROM rooms WHERE user_id = ? AND name = ?',
@@ -1067,6 +1148,22 @@ app.get('/api/rooms/:name', authenticate, async (req, res) => {
         
     } catch (error) {
         console.error('Ошибка загрузки комнаты:', error);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+app.get('/api/rooms/list', authenticate, async (req, res) => {
+    try {
+        const rooms = await query(
+            `SELECT id, name, updated_at, created_at
+             FROM rooms
+             WHERE user_id = ?
+             ORDER BY updated_at DESC, created_at DESC`,
+            [req.user.id]
+        );
+        res.json(rooms);
+    } catch (error) {
+        console.error('Ошибка списка комнат:', error);
         res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
@@ -1096,6 +1193,35 @@ app.get('/api/families/:id/members', authenticate, async (req, res) => {
     } catch (error) {
         console.error('Ошибка получения членов семьи:', error);
         res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+// Обновление аватара пользователя (фото)
+app.post('/api/users/avatar', authenticate, async (req, res) => {
+    try {
+        const { imageData } = req.body;
+        if (!imageData || typeof imageData !== 'string' || !imageData.startsWith('data:image/')) {
+            return res.status(400).json({ error: 'Некорректное изображение' });
+        }
+
+        const matches = imageData.match(/^data:image\/(png|jpeg|jpg|webp);base64,(.+)$/);
+        if (!matches) {
+            return res.status(400).json({ error: 'Поддерживаются png, jpg, webp' });
+        }
+
+        const ext = matches[1] === 'jpeg' ? 'jpg' : matches[1];
+        const base64 = matches[2];
+        const filename = `${req.user.id}-${Date.now()}.${ext}`;
+        const filepath = path.join(uploadsDir, filename);
+        fs.writeFileSync(filepath, Buffer.from(base64, 'base64'));
+
+        const avatarPath = `/assets/uploads/${filename}`;
+        await query('UPDATE users SET avatar = ? WHERE id = ?', [avatarPath, req.user.id]);
+
+        return res.json({ success: true, avatar: avatarPath });
+    } catch (error) {
+        console.error('Ошибка загрузки аватара:', error);
+        return res.status(500).json({ error: 'Ошибка загрузки аватара' });
     }
 });
 

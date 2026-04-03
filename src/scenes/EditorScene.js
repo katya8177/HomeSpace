@@ -73,6 +73,7 @@ export class EditorScene extends Phaser.Scene {
 
         // Выделение
         this.selectionGraphics = null;
+        this.dragFeedbackGraphics = null;
 
         // Утечки/очистка
         this._disposables = createDisposables();
@@ -94,6 +95,7 @@ export class EditorScene extends Phaser.Scene {
     
     create() {
         const { width, height } = this.cameras.main;
+        console.log('EditorScene create started');
         
         // Загружаем пользователя
         this.loadCurrentUser();
@@ -114,6 +116,7 @@ export class EditorScene extends Phaser.Scene {
 
         // Графика выделения
         this.selectionGraphics = this.add.graphics().setDepth(1999);
+        this.dragFeedbackGraphics = this.add.graphics().setDepth(1998);
 
         // Уведомления
         this._notifier = createNotificationManager(this, { startY: 105, maxVisible: 3, depth: 4000 });
@@ -122,6 +125,14 @@ export class EditorScene extends Phaser.Scene {
         // Глобальная очистка
         this.events.once('shutdown', () => this._disposables.run());
         this.events.once('destroy', () => this._disposables.run());
+        const onBeforeUnload = (e) => {
+            if (this._dirty) {
+                e.preventDefault();
+                e.returnValue = 'Есть несохранённые изменения. Вы уверены?';
+            }
+        };
+        window.addEventListener('beforeunload', onBeforeUnload);
+        this._disposables.add(() => window.removeEventListener('beforeunload', onBeforeUnload));
         
         // ========== ВЕРХНЯЯ ПАНЕЛЬ КНОПОК ==========
         const buttonY = 30;
@@ -140,12 +151,10 @@ export class EditorScene extends Phaser.Scene {
             hoverFillColor: 0x6fe3b5,
             text: '← Назад',
             textStyle: { fontSize: '18px', fill: '#fafafa' },
-            onClick: () => {
+            onClick: async () => {
                 console.log('Назад нажата');
-                this.markDirty();
-                this.time.delayedCall(100, () => {
-                    this.scene.start('MenuScene');
-                });
+                await this.forceSaveBeforeExit();
+                this.scene.start('MenuScene');
             }
         });
         
@@ -172,7 +181,7 @@ export class EditorScene extends Phaser.Scene {
             this.createInstruction();
             
             if (this.taskMode) {
-                this.showNotification('📋 РЕЖИМ ЗАДАНИЙ: Кликните на предмет, чтобы создать задание', '#4ecca3');
+                this.showNotification('Режим заданий: кликните на предмет, чтобы создать задание', '#4ecca3');
                 this.input.setDefaultCursor('crosshair');
             } else {
                 this.showNotification('Режим заданий выключен', '#888888');
@@ -206,7 +215,7 @@ export class EditorScene extends Phaser.Scene {
         }
         
         // Кнопка центрирования
-        const centerBtn = this.add.text(width - 380, 30, '🎯 Центр', {
+        const centerBtn = this.add.text(width - 380, 30, 'Центр', {
             fontSize: '16px',
             fill: '#ffffff',
             backgroundColor: '#ffd700',
@@ -310,7 +319,7 @@ export class EditorScene extends Phaser.Scene {
             this.snapToGridEnabled = !this.snapToGridEnabled;
             this.drawGrid();
             this.showNotification(
-                this.snapToGridEnabled ? '🧲 Привязка к сетке: ВКЛ (G)' : '🧲 Привязка к сетке: ВЫКЛ (G)',
+                this.snapToGridEnabled ? 'Привязка к сетке: ВКЛ (G)' : 'Привязка к сетке: ВЫКЛ (G)',
                 this.snapToGridEnabled ? '#4ecca3' : '#888888'
             );
         });
@@ -323,6 +332,7 @@ export class EditorScene extends Phaser.Scene {
         
         // Загружаем комнату/задания
         this.bootstrapRoomAndTasks();
+        console.log('EditorScene bootstrap requested');
         
         // Обработчик для выделения предметов
         this.input.on('gameobjectdown', (pointer, gameObject) => {
@@ -370,6 +380,8 @@ export class EditorScene extends Phaser.Scene {
         this.checkTasksSync();
         this.refreshAllItems();
         this.updateSelectionOutline();
+        console.log('Items loaded:', this.items.length);
+        console.log('Textures loaded:', Object.keys(this.textures.list || {}).length);
 
         this.setupHtmlFurnitureUi();
     }
@@ -414,13 +426,15 @@ export class EditorScene extends Phaser.Scene {
             toggle.setAttribute('aria-label', open ? 'Свернуть панель' : 'Развернуть панель');
         };
 
-        const loadRoomNames = () => {
+        const loadRoomNames = async () => {
             try {
+                const remote = await api.getRoomsList();
+                const remoteNames = Array.isArray(remote) ? remote.map(r => r.name).filter(Boolean) : [];
                 const raw = localStorage.getItem(`homespace_room_names_${this.currentUser?.id || 'guest'}`);
                 const list = raw ? JSON.parse(raw) : null;
                 const base = Array.isArray(list) ? list : [];
                 if (!base.includes(this.roomName)) base.unshift(this.roomName);
-                return Array.from(new Set(base)).slice(0, 20);
+                return Array.from(new Set([...remoteNames, ...base])).slice(0, 50);
             } catch {
                 return [this.roomName];
             }
@@ -430,9 +444,9 @@ export class EditorScene extends Phaser.Scene {
             try { localStorage.setItem(`homespace_room_names_${this.currentUser?.id || 'guest'}`, JSON.stringify(names)); } catch { /* noop */ }
         };
         
-        const renderRooms = () => {
+        const renderRooms = async () => {
             if (!roomSelect) return;
-            const names = loadRoomNames();
+            const names = await loadRoomNames();
             saveRoomNames(names);
             roomSelect.innerHTML = '';
             for (const n of names) {
@@ -444,27 +458,17 @@ export class EditorScene extends Phaser.Scene {
             }
         };
         
-        const switchRoom = async (name) => {
-            if (!name || name === this.roomName) return;
-            this.roomName = name;
-            await this.loadRoom();
-            await this.loadTasksFromServer();
-            this.refreshAllItems();
-            this.updateSelectionOutline();
-            renderRooms();
-            this.showNotification(`Комната: ${name}`, '#4ecca3');
-        };
+        const switchRoom = async (name) => this.switchRoom(name, renderRooms);
         
         const onRoomChange = () => switchRoom(roomSelect?.value);
         roomSelect?.addEventListener('change', onRoomChange);
         
         const onRoomNew = async () => {
-            const base = loadRoomNames();
+            const base = await loadRoomNames();
             const name = `Комната ${base.length + 1}`;
             base.unshift(name);
             saveRoomNames(base);
             await switchRoom(name);
-            this.markDirty();
         };
         roomNew?.addEventListener('click', onRoomNew);
         
@@ -538,7 +542,7 @@ export class EditorScene extends Phaser.Scene {
             }
             const customOpt = document.createElement('option');
             customOpt.value = 'custom';
-            customOpt.textContent = '📷 Моё фото';
+            customOpt.textContent = 'Моё фото';
             if (this._bgKey === 'custom') customOpt.selected = true;
             bgSelect.appendChild(customOpt);
         };
@@ -611,7 +615,7 @@ export class EditorScene extends Phaser.Scene {
 
                 const emoji = document.createElement('div');
                 emoji.className = 'furniture-emoji';
-                emoji.textContent = '🪑';
+                emoji.textContent = '•';
 
                 const main = document.createElement('div');
                 const name = document.createElement('div');
@@ -662,14 +666,14 @@ export class EditorScene extends Phaser.Scene {
         const syncSnapUi = () => {
             if (!snapToggle) return;
             snapToggle.setAttribute('aria-pressed', this.snapToGridEnabled ? 'true' : 'false');
-            snapToggle.textContent = this.snapToGridEnabled ? '🧲 Сетка: вкл' : '🧲 Сетка: выкл';
+            snapToggle.textContent = this.snapToGridEnabled ? 'Сетка: вкл' : 'Сетка: выкл';
         };
         const onSnap = () => {
             this.snapToGridEnabled = !this.snapToGridEnabled;
             this.drawGrid();
             syncSnapUi();
             this.showNotification(
-                this.snapToGridEnabled ? '🧲 Привязка к сетке: ВКЛ (G)' : '🧲 Привязка к сетке: ВЫКЛ (G)',
+                this.snapToGridEnabled ? 'Привязка к сетке: ВКЛ (G)' : 'Привязка к сетке: ВЫКЛ (G)',
                 this.snapToGridEnabled ? '#4ecca3' : '#888888'
             );
         };
@@ -863,7 +867,7 @@ export class EditorScene extends Phaser.Scene {
             if (this.textures.exists(textureKey)) {
                 icon = this.add.image(x, y - 15, textureKey).setScale(0.35).setDepth(2001);
             } else {
-                icon = this.add.text(x, y - 15, '🪑', {
+                icon = this.add.text(x, y - 15, '[]', {
                     fontSize: '40px'
                 }).setOrigin(0.5).setDepth(2001);
                 
@@ -1076,15 +1080,19 @@ export class EditorScene extends Phaser.Scene {
             const ok = this.canPlaceItemAt(item.data.key, item.data.rotation, nx, ny, item);
             item.setAlpha(ok ? 1 : 0.6);
             item.setTint(ok ? 0xffffff : 0xff6666);
+            this.drawDragFeedback(item.data.key, item.data.rotation, nx, ny, ok);
 
             item.x = nx;
             item.y = ny;
             item.setDepth(item.y);
+            if (ok) item.__lastValidPos = { x: nx, y: ny };
             this.updateTaskMarkerPosition(item);
             if (this.selectedFurniture === item) this.updateSelectionOutline();
+            this.sortItemsByDepth();
         });
         
         item.on('dragend', () => {
+            this.clearDragFeedback();
             if (this.snapToGridEnabled) {
                 const snapped = this.snapToGrid(item.x, item.y);
                 item.setPosition(snapped.x, snapped.y);
@@ -1100,6 +1108,7 @@ export class EditorScene extends Phaser.Scene {
             delete item.__dragOffset;
             this.updateTaskMarkerPosition(item);
             if (this.selectedFurniture === item) this.updateSelectionOutline();
+            this.sortItemsByDepth();
 
             this.markDirty();
         });
@@ -1114,6 +1123,7 @@ export class EditorScene extends Phaser.Scene {
         });
         
         this.items.push(item);
+        this.sortItemsByDepth();
         
         this.selectedItem = null;
         this.selectedRotation = null;
@@ -1223,6 +1233,7 @@ export class EditorScene extends Phaser.Scene {
             this.selectedFurniture.destroy();
             this.selectedFurniture = null;
             console.log('Предмет удален');
+            this.sortItemsByDepth();
             this.updateSelectionOutline();
             this.markDirty();
             this.showNotification('Предмет удалён', '#e94560');
@@ -1318,7 +1329,7 @@ export class EditorScene extends Phaser.Scene {
         modalElements.push(modal);
         
         const itemData = furnitureData[item.data.key];
-        const title = this.add.text(width/2, height/2 - 190, `📋 Задания для ${itemData?.name || 'предмета'}`, {
+        const title = this.add.text(width/2, height/2 - 190, `Задания для ${itemData?.name || 'предмета'}`, {
             fontSize: '20px', fill: '#ffffff', fontStyle: 'bold'
         }).setOrigin(0.5).setDepth(2001);
         modalElements.push(title);
@@ -1604,7 +1615,7 @@ export class EditorScene extends Phaser.Scene {
             members.forEach(member => {
                 const option = document.createElement('option');
                 option.value = member.id;
-                option.textContent = `${member.avatar || '👤'} ${member.name} (${member.role === 'parent' ? 'Родитель' : 'Ребёнок'})`;
+                option.textContent = `${member.name} (${member.role === 'parent' ? 'Родитель' : 'Ребёнок'})`;
                 selectElement.appendChild(option);
             });
         } catch (error) {
@@ -1631,21 +1642,57 @@ export class EditorScene extends Phaser.Scene {
                         rotation: item.data.rotationIndex || 0,
                         x: item.x,
                         y: item.y,
-                        scale: item.data.scale || item.scaleX || 0.5
+                        scale: item.data.scale || item.scaleX || 0.5,
+                        tasks: item.data.tasks || []
                     }))
                 },
                 width: 20,
                 height: 15,
                 gridSize: this.gridSize
             };
+            console.log('Editor saveRoom payload:', roomData);
             
             const result = await api.saveRoom(roomData);
+            console.log('Editor saveRoom response:', result);
+            if (!result?.id) {
+                throw new Error('Сервер не вернул id комнаты');
+            }
             this.roomId = result.id;
+            this._dirty = false;
+            try {
+                localStorage.setItem(`room_backup_${this.roomName}`, JSON.stringify(roomData));
+            } catch {
+                // ignore local fallback write errors
+            }
             this.showNotification('Комната сохранена!', '#4ecca3');
             
         } catch (error) {
             console.error('Ошибка сохранения:', error);
+            this._dirty = true;
+            try {
+                const fallbackRoomData = {
+                    name: this.roomName,
+                    data: {
+                        meta: { bgKey: this._bgKey },
+                        items: this.items.map(item => ({
+                            key: item.data.key,
+                            rotation: item.data.rotationIndex || 0,
+                            x: item.x,
+                            y: item.y,
+                            scale: item.data.scale || item.scaleX || 0.5,
+                            tasks: item.data.tasks || []
+                        }))
+                    },
+                    width: 20,
+                    height: 15,
+                    gridSize: this.gridSize
+                };
+                localStorage.setItem(`room_backup_${this.roomName}`, JSON.stringify(fallbackRoomData));
+            } catch {
+                // ignore local fallback write errors
+            }
             this.showNotification('Ошибка сохранения', '#e94560');
+            throw error;
         } finally {
             this.isLoading = false;
             this.loadingText.setVisible(false);
@@ -1664,101 +1711,32 @@ export class EditorScene extends Phaser.Scene {
             const room = await api.getRoom(this.roomName);
             
             if (!room) {
-                this.showNotification('Комната не найдена', '#e94560');
+                const backup = localStorage.getItem(`room_backup_${this.roomName}`);
+                if (backup) {
+                    try {
+                        const parsed = JSON.parse(backup);
+                        const data = parsed?.data || {};
+                        const roomLike = { id: null, data };
+                        this.loadRoomFromData(roomLike);
+                        this._dirty = false;
+                        this.showNotification('Комната восстановлена из локальной копии', '#ffd700');
+                        return;
+                    } catch {
+                        // continue to empty state
+                    }
+                }
+                this.items.forEach(item => item.destroy());
+                this.items = [];
+                this._dirty = false;
+                this.showNotification('Новая пустая комната', '#888888');
                 return;
             }
             
-            this.items.forEach(item => item.destroy());
-            this.items = [];
-            
-            const rotations = ['NE', 'NW', 'SE', 'SW'];
-            
-            const data = room.data;
-            const roomItems = Array.isArray(data) ? data : (data?.items || []);
-            const meta = Array.isArray(data) ? {} : (data?.meta || {});
-            if (meta.bgKey) this.applyBackgroundKey(meta.bgKey);
-
-            for (const itemData of roomItems) {
-                const rotationIndex = itemData.rotation || 0;
-                const rotation = rotations[rotationIndex];
-                const textureKey = `${itemData.key}_${rotation}`;
-                
-                const scale = itemData.scale ?? 0.5;
-                
-                let item;
-                if (this.textures.exists(textureKey)) {
-                    item = this.add.image(itemData.x, itemData.y, textureKey);
-                } else {
-                    item = this.add.rectangle(itemData.x, itemData.y, 50, 50, 0x4ecca3);
-                }
-                
-                item.setScale(scale);
-                item.setInteractive({ 
-                    useHandCursor: true, 
-                    draggable: true,
-                    cursor: 'grab'
-                });
-                item.setDepth(itemData.y);
-                
-                item.data = {
-                    key: itemData.key,
-                    rotation: rotation,
-                    rotationIndex: rotationIndex,
-                    rotations: rotations,
-                    tasks: [],
-                    scale: scale
-                };
-                
-                this.input.setDraggable(item);
-                
-                item.on('dragstart', (dragPointer) => {
-                    item.setDepth(1000);
-                    const wp = this.getPointerWorld(dragPointer);
-                    item.__dragOffset = { x: item.x - wp.x, y: item.y - wp.y };
-                });
-                
-                item.on('drag', (dragPointer, dragX, dragY) => {
-                    const wp = this.getPointerWorld(dragPointer);
-                    const offset = item.__dragOffset || { x: 0, y: 0 };
-                    const targetX = wp.x + offset.x;
-                    const targetY = wp.y + offset.y;
-
-                    const { minX: bMinX, minY: bMinY, maxX: bMaxX, maxY: bMaxY } = this.getWorldBoundsPadding(50);
-                    const snapped = this.snapToGridEnabled ? this.snapToGrid(targetX, targetY) : { x: targetX, y: targetY };
-                    const snapX = snapped.x;
-                    const snapY = snapped.y;
-                    
-                    item.x = Math.min(bMaxX, Math.max(bMinX, snapX));
-                    item.y = Math.min(bMaxY, Math.max(bMinY, snapY));
-                    item.setDepth(item.y);
-                    this.updateTaskMarkerPosition(item);
-                    if (this.selectedFurniture === item) this.updateSelectionOutline();
-                });
-                
-                item.on('dragend', () => {
-                    if (this.snapToGridEnabled) {
-                        const snapped = this.snapToGrid(item.x, item.y);
-                        item.setPosition(snapped.x, snapped.y);
-                    }
-                    item.setDepth(item.y);
-                    delete item.__dragOffset;
-                    this.updateTaskMarkerPosition(item);
-                    if (this.selectedFurniture === item) this.updateSelectionOutline();
-                });
-                
-                item.on('pointerdown', (itemPointer, localX, localY, event) => {
-                    if (itemPointer.rightButtonDown()) {
-                        event.stopPropagation();
-                        this.rotateItem(item);
-                    } else if (!this.placementMode && !this.taskMode) {
-                        this.selectItem(item);
-                    }
-                });
-                
-                this.items.push(item);
-            }
+            this.loadRoomFromData(room);
             
             this.roomId = room.id;
+            this.sortItemsByDepth();
+            this._dirty = false;
             this.showNotification('Комната загружена', '#4ecca3');
             
         } catch (error) {
@@ -1766,6 +1744,88 @@ export class EditorScene extends Phaser.Scene {
         } finally {
             this.isLoading = false;
             this.loadingText.setVisible(false);
+        }
+    }
+
+    loadRoomFromData(room) {
+        this.items.forEach(item => item.destroy());
+        this.items = [];
+        const rotations = ['NE', 'NW', 'SE', 'SW'];
+        const data = room.data;
+        const roomItems = Array.isArray(data) ? data : (data?.items || []);
+        const meta = Array.isArray(data) ? {} : (data?.meta || {});
+        if (meta.bgKey) this.applyBackgroundKey(meta.bgKey);
+
+        for (const itemData of roomItems) {
+            const rotationIndex = itemData.rotation || 0;
+            const rotation = rotations[rotationIndex];
+            const textureKey = `${itemData.key}_${rotation}`;
+            const scale = itemData.scale ?? 0.5;
+            let item;
+            if (this.textures.exists(textureKey)) {
+                item = this.add.image(itemData.x, itemData.y, textureKey);
+            } else {
+                item = this.add.rectangle(itemData.x, itemData.y, 50, 50, 0x4ecca3);
+            }
+            item.setScale(scale);
+            item.setInteractive({ useHandCursor: true, draggable: true, cursor: 'grab' });
+            item.setDepth(itemData.y);
+            item.data = {
+                key: itemData.key,
+                rotation: rotation,
+                rotationIndex: rotationIndex,
+                rotations: rotations,
+                tasks: itemData.tasks || [],
+                scale: scale
+            };
+            this.input.setDraggable(item);
+            item.on('dragstart', (dragPointer) => {
+                item.setDepth(1000);
+                const wp = this.getPointerWorld(dragPointer);
+                item.__dragOffset = { x: item.x - wp.x, y: item.y - wp.y };
+            });
+            item.on('drag', (dragPointer) => {
+                const wp = this.getPointerWorld(dragPointer);
+                const offset = item.__dragOffset || { x: 0, y: 0 };
+                const targetX = wp.x + offset.x;
+                const targetY = wp.y + offset.y;
+                const { minX: bMinX, minY: bMinY, maxX: bMaxX, maxY: bMaxY } = this.getWorldBoundsPadding(50);
+                const snapped = this.snapToGridEnabled ? this.snapToGrid(targetX, targetY) : { x: targetX, y: targetY };
+                item.x = Math.min(bMaxX, Math.max(bMinX, snapped.x));
+                item.y = Math.min(bMaxY, Math.max(bMinY, snapped.y));
+                const ok = this.canPlaceItemAt(item.data.key, item.data.rotation, item.x, item.y, item);
+                item.setAlpha(ok ? 1 : 0.6);
+                item.setTint(ok ? 0xffffff : 0xff6666);
+                this.drawDragFeedback(item.data.key, item.data.rotation, item.x, item.y, ok);
+                item.setDepth(item.y);
+                item.__lastValidPos = { x: item.x, y: item.y };
+                this.updateTaskMarkerPosition(item);
+                if (this.selectedFurniture === item) this.updateSelectionOutline();
+                this.sortItemsByDepth();
+            });
+            item.on('dragend', () => {
+                this.clearDragFeedback();
+                if (this.snapToGridEnabled) {
+                    const snapped = this.snapToGrid(item.x, item.y);
+                    item.setPosition(snapped.x, snapped.y);
+                }
+                item.setDepth(item.y);
+                delete item.__dragOffset;
+                this.updateTaskMarkerPosition(item);
+                if (this.selectedFurniture === item) this.updateSelectionOutline();
+                this.sortItemsByDepth();
+                this.markDirty();
+            });
+            item.on('pointerdown', (itemPointer, localX, localY, event) => {
+                if (itemPointer.rightButtonDown()) {
+                    event.stopPropagation();
+                    this.rotateItem(item);
+                } else if (!this.placementMode && !this.taskMode) {
+                    this.selectItem(item);
+                }
+            });
+            this.items.push(item);
+            this.updateTaskMarker(item);
         }
     }
 
@@ -1796,12 +1856,43 @@ export class EditorScene extends Phaser.Scene {
 
     async autosaveNow() {
         if (!this._dirty) return;
-        this._dirty = false;
         try {
             await this.saveRoom();
         } catch {
             // saveRoom already notifies on errors
         }
+    }
+
+    async forceSaveBeforeExit() {
+        if (!this._dirty) return;
+        try {
+            await this.saveRoom();
+        } catch {
+            // keep unsaved warning behavior
+        }
+    }
+
+    async switchRoom(newRoomName, refreshRoomsCb = null) {
+        if (!newRoomName || newRoomName === this.roomName) return;
+        if (this._dirty) await this.saveRoom();
+        this.items.forEach(item => item.destroy());
+        this.items = [];
+        this.selectedFurniture = null;
+        this.updateSelectionOutline();
+        this.roomName = newRoomName;
+        await this.loadRoom();
+        await this.loadTasksFromServer();
+        this.refreshAllItems();
+        this.sortItemsByDepth();
+        if (typeof refreshRoomsCb === 'function') await refreshRoomsCb();
+        this.showNotification(`Комната: ${newRoomName}`, '#4ecca3');
+    }
+
+    sortItemsByDepth() {
+        this.items.sort((a, b) => a.y - b.y);
+        this.items.forEach(item => {
+            if (item && !item.destroyed) item.setDepth(item.y);
+        });
     }
     
     updateTaskMarker(item) {
@@ -2027,14 +2118,14 @@ export class EditorScene extends Phaser.Scene {
             this.instruction.destroy();
         }
         
-        let text = '🖱️ ЛКМ - выделить | ПКМ - повернуть | DEL - удалить';
-        text += ' | Q/E - масштаб | R - повернуть | 🖱️ Колесико - масштаб камеры | Ctrl+ЛКМ - перемещение';
+        let text = 'ЛКМ - выделить | ПКМ - повернуть | DEL - удалить';
+        text += ' | Q/E - масштаб | R - повернуть | Колесико - масштаб камеры | Ctrl+ЛКМ - перемещение';
         text += ' | G - вкл/выкл сетку';
         
         if (this.taskMode) {
-            text = '📋 РЕЖИМ ЗАДАНИЙ: Клик по предмету - управление заданиями | ESC - выйти';
+            text = 'РЕЖИМ ЗАДАНИЙ: Клик по предмету - управление заданиями | ESC - выйти';
         } else if (placementMode) {
-            text = '🏠 РЕЖИМ РАЗМЕЩЕНИЯ: Клик по сетке - разместить | ESC - отмена';
+            text = 'РЕЖИМ РАЗМЕЩЕНИЯ: Клик по сетке - разместить | ESC - отмена';
         }
         
         this.instruction = this.add.text(width/2, height - 25, text, {
@@ -2055,7 +2146,7 @@ export class EditorScene extends Phaser.Scene {
     }
     
     refreshAllItems() {
-        console.log('🔄 Обновление всех предметов...');
+        console.log('Обновление всех предметов...');
         const camera = this.cameras.main;
         const minX = 50;
         const minY = 50;
@@ -2089,8 +2180,25 @@ export class EditorScene extends Phaser.Scene {
         const bounds = item.getBounds ? item.getBounds() : null;
         if (!bounds) return;
 
+        this.selectionGraphics.fillStyle(0x4ecca3, 0.2);
+        this.selectionGraphics.fillRect(bounds.x, bounds.y, bounds.width, bounds.height);
         this.selectionGraphics.lineStyle(3, 0x4ecca3, 1);
         this.selectionGraphics.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height);
+    }
+
+    drawDragFeedback(itemKey, rotation, x, y, ok) {
+        if (!this.dragFeedbackGraphics) return;
+        this.dragFeedbackGraphics.clear();
+        const fp = this.getFootprint(itemKey, rotation, x, y);
+        this.dragFeedbackGraphics.fillStyle(ok ? 0x4ecca3 : 0xe94560, 0.18);
+        this.dragFeedbackGraphics.fillRect(fp.x, fp.y, fp.width, fp.height);
+        this.dragFeedbackGraphics.lineStyle(2, ok ? 0x4ecca3 : 0xe94560, 1);
+        this.dragFeedbackGraphics.strokeRect(fp.x, fp.y, fp.width, fp.height);
+    }
+
+    clearDragFeedback() {
+        if (!this.dragFeedbackGraphics) return;
+        this.dragFeedbackGraphics.clear();
     }
     
     destroy() {

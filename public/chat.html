@@ -128,6 +128,7 @@
             justify-content: center;
             font-size: 28px;
             box-shadow: 0 4px 15px rgba(78, 204, 163, 0.3);
+            overflow: hidden;
         }
 
         .user-details {
@@ -182,6 +183,7 @@
             align-items: center;
             justify-content: center;
             font-size: 22px;
+            overflow: hidden;
         }
 
         .user-item-info {
@@ -303,7 +305,10 @@
             justify-content: center;
             font-size: 20px;
             flex-shrink: 0;
+            overflow: hidden;
         }
+        .avatar-image { width: 100%; height: 100%; object-fit: cover; }
+        .avatar-initials { font-size: 14px; font-weight: 700; color: #fff; }
 
         .message-content {
             background: rgba(44, 62, 80, 0.9);
@@ -449,22 +454,23 @@
     </style>
 </head>
 <body>
-        <div style="display: flex; gap: 10px; position: fixed; top: 20px; left: 20px; z-index: 100;">
+    <div style="display: flex; gap: 10px; position: fixed; top: 20px; left: 20px; z-index: 100;">
         <button class="back-btn" id="close-btn" style="background: rgba(233, 69, 96, 0.8); border-color: #e94560;">
             ✕ Закрыть
         </button>
-    <button class="back-btn" onclick="window.location.href='/'">
-        ← Назад в меню
-    </button>
+        <button class="back-btn" onclick="window.location.href='/'">
+            ← Назад в меню
+        </button>
+    </div>
 
     <div class="chat-app">
         <div class="chat-sidebar" id="chat-sidebar">
             <div class="sidebar-header">
-                <h2>💬 Семейный чат</h2>
+                <h2>Семейный чат</h2>
                 <p>Общайтесь всей семьёй</p>
             </div>
             <div class="user-info" id="user-info">
-                <div class="user-avatar" id="user-avatar">👤</div>
+                <div class="user-avatar" id="user-avatar"></div>
                 <div class="user-details">
                     <div class="user-name" id="user-name">Загрузка...</div>
                     <div class="user-role" id="user-role"></div>
@@ -478,7 +484,7 @@
         <div class="chat-main">
             <div class="chat-header">
                 <div class="chat-title" id="chat-title">
-                    <span class="chat-title-icon">👥</span>
+                    <span class="chat-title-icon">Чат</span>
                     <span>Семейный чат</span>
                 </div>
                 <button class="refresh-btn" id="refresh-btn" title="Обновить">⟳</button>
@@ -486,7 +492,7 @@
 
             <div class="messages-area" id="messages-area">
                 <div class="empty-messages">
-                    <div class="empty-messages-icon">💬</div>
+                    <div class="empty-messages-icon">Чат</div>
                     <div>Нет сообщений</div>
                     <div style="font-size:12px; margin-top:8px;">Напишите первое сообщение!</div>
                 </div>
@@ -508,6 +514,9 @@
         let users = [];
         let refreshInterval = null;
         let sidebarOpen = false;
+        let unreadCount = 0;
+        let isTabFlashing = false;
+        const baseTitle = document.title;
 
         function closeWebView() {
             if (window.parent && window.parent !== window) {
@@ -582,9 +591,9 @@
                     const userRoleEl = document.getElementById('user-role');
                     
                     if (userNameEl) userNameEl.textContent = currentUser.name || 'Пользователь';
-                    if (userAvatarEl) userAvatarEl.textContent = currentUser.avatar || '👤';
+                    if (userAvatarEl) userAvatarEl.innerHTML = getAvatarHtml(currentUser.avatar, currentUser.name);
                     
-                    const roleText = currentUser.role === 'parent' ? '👑 Родитель' : '🧒 Ребёнок';
+                    const roleText = currentUser.role === 'parent' ? 'Родитель' : 'Ребёнок';
                     if (userRoleEl) userRoleEl.textContent = roleText;
                 } catch (e) {
                     console.error('Ошибка загрузки пользователя:', e);
@@ -611,7 +620,7 @@
                 console.error('Ошибка загрузки участников:', error);
                 const usersList = document.getElementById('users-list');
                 if (usersList) {
-                    usersList.innerHTML = '<div style="text-align:center;padding:20px;color:#e94560;">❌ Ошибка загрузки</div>';
+                    usersList.innerHTML = '<div style="text-align:center;padding:20px;color:#e94560;">Ошибка загрузки</div>';
                 }
             }
         }
@@ -623,7 +632,7 @@
             const familyBtn = document.createElement('div');
             familyBtn.className = `user-item ${currentChat.type === 'family' ? 'active' : ''}`;
             familyBtn.innerHTML = `
-                <div class="user-item-avatar">👥</div>
+                    <div class="user-item-avatar"><span class="avatar-initials">CH</span></div>
                 <div class="user-item-info">
                     <div class="user-item-name">Семейный чат</div>
                     <div class="user-item-role">Общий чат семьи</div>
@@ -644,10 +653,10 @@
                 const userDiv = document.createElement('div');
                 userDiv.className = `user-item ${isActive ? 'active' : ''}`;
                 userDiv.innerHTML = `
-                    <div class="user-item-avatar">${user.avatar || '👤'}</div>
+                    <div class="user-item-avatar">${getAvatarHtml(user.avatar, user.name)}</div>
                     <div class="user-item-info">
                         <div class="user-item-name">${escapeHtml(user.name)}</div>
-                        <div class="user-item-role">${user.role === 'parent' ? '👑 Родитель' : '🧒 Ребёнок'}</div>
+                        <div class="user-item-role">${user.role === 'parent' ? 'Родитель' : 'Ребёнок'}</div>
                     </div>
                     <div class="online-indicator ${isOnline ? '' : 'offline'}"></div>
                 `;
@@ -688,7 +697,7 @@
             if (!messages || messages.length === 0) {
                 area.innerHTML = `
                     <div class="empty-messages">
-                        <div class="empty-messages-icon">💬</div>
+                        <div class="empty-messages-icon">Чат</div>
                         <div>Нет сообщений</div>
                         <div style="font-size:12px; margin-top:8px;">Напишите первое сообщение!</div>
                     </div>
@@ -698,7 +707,19 @@
             
             area.innerHTML = '';
             
+            let lastDateLabel = '';
             messages.forEach(msg => {
+                const dateLabel = formatMessageDate(new Date(msg.created_at));
+                if (dateLabel !== lastDateLabel) {
+                    const sep = document.createElement('div');
+                    sep.style.textAlign = 'center';
+                    sep.style.fontSize = '12px';
+                    sep.style.color = 'rgba(255,255,255,0.55)';
+                    sep.style.margin = '6px 0';
+                    sep.textContent = dateLabel;
+                    area.appendChild(sep);
+                    lastDateLabel = dateLabel;
+                }
                 const isOwn = msg.user_id === currentUser?.id;
                 const isBot = msg.type === 'bot';
                 
@@ -708,7 +729,7 @@
                 const time = new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 
                 messageDiv.innerHTML = `
-                    <div class="message-avatar">${isOwn ? (currentUser?.avatar || '👤') : (msg.user_avatar || '👤')}</div>
+                    <div class="message-avatar">${isOwn ? getAvatarHtml(currentUser?.avatar, currentUser?.name) : getAvatarHtml(msg.user_avatar, msg.user_name)}</div>
                     <div class="message-content">
                         ${!isOwn && !isBot ? `<div class="message-sender">${escapeHtml(msg.user_name || 'Пользователь')}</div>` : ''}
                         <div class="message-text">${escapeHtml(msg.message)}</div>
@@ -765,7 +786,7 @@
             currentChat = { type: 'family', userId: null, userName: null };
             const chatTitle = document.getElementById('chat-title');
             if (chatTitle) {
-                chatTitle.innerHTML = '<span class="chat-title-icon">👥</span><span>Семейный чат</span>';
+                chatTitle.innerHTML = '<span class="chat-title-icon">Чат</span><span>Семейный чат</span>';
             }
             renderUsers();
             loadMessages();
@@ -781,7 +802,7 @@
             currentChat = { type: 'private', userId: user.id, userName: user.name };
             const chatTitle = document.getElementById('chat-title');
             if (chatTitle) {
-                chatTitle.innerHTML = `<span class="chat-title-icon">💬</span><span>Чат с ${escapeHtml(user.name)}</span>`;
+                chatTitle.innerHTML = `<span class="chat-title-icon">Чат</span><span>Чат с ${escapeHtml(user.name)}</span>`;
             }
             renderUsers();
             loadMessages();
@@ -818,8 +839,18 @@
 
         function startAutoRefresh() {
             if (refreshInterval) clearInterval(refreshInterval);
+            let prevLastId = messages[messages.length - 1]?.id || null;
             refreshInterval = setInterval(() => {
-                loadMessages();
+                loadMessages().then(() => {
+                    const latest = messages[messages.length - 1];
+                    const latestId = latest?.id || null;
+                    if (latestId && prevLastId && latestId !== prevLastId && latest?.user_id !== currentUser?.id) {
+                        unreadCount += 1;
+                        updateUnreadIndicator();
+                        flashTab();
+                    }
+                    prevLastId = latestId || prevLastId;
+                });
             }, 5000);
         }
 
@@ -842,6 +873,50 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        function formatMessageDate(date) {
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            if (date.toDateString() === today.toDateString()) return 'Сегодня';
+            if (date.toDateString() === yesterday.toDateString()) return 'Вчера';
+            return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+        }
+
+        function updateUnreadIndicator() {
+            const chatTitle = document.getElementById('chat-title');
+            if (!chatTitle) return;
+            const badge = unreadCount > 0 ? ` (${unreadCount})` : '';
+            const titleText = currentChat.type === 'private' && currentChat.userName
+                ? `Чат с ${currentChat.userName}${badge}`
+                : `Семейный чат${badge}`;
+            chatTitle.innerHTML = `<span class="chat-title-icon">Чат</span><span>${escapeHtml(titleText)}</span>`;
+        }
+
+        function flashTab() {
+            if (isTabFlashing) return;
+            isTabFlashing = true;
+            let count = 0;
+            const interval = setInterval(() => {
+                document.title = count % 2 === 0 ? 'Новое сообщение' : baseTitle;
+                count += 1;
+                if (count > 6) {
+                    clearInterval(interval);
+                    document.title = baseTitle;
+                    isTabFlashing = false;
+                }
+            }, 500);
+        }
+
+        function getAvatarHtml(avatar, name) {
+            if (avatar && avatar.startsWith('/assets/uploads/')) {
+                return `<img class="avatar-image" src="${escapeHtml(avatar)}" alt="${escapeHtml(name || 'avatar')}">`;
+            }
+            const base = (name || 'П').trim();
+            const parts = base.split(/\s+/).filter(Boolean).slice(0, 2);
+            const initials = parts.map(p => p[0]?.toUpperCase() || '').join('') || 'U';
+            return `<span class="avatar-initials">${escapeHtml(initials)}</span>`;
         }
 
         // Запуск

@@ -109,6 +109,33 @@ class ApiService {
         }
     }
 
+    async requestPasswordReset(email) {
+        const response = await fetch(`${this.baseUrl}/auth/forgot-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+        });
+        return await this.handleResponse(response);
+    }
+
+    async resetPassword(email, code, newPassword) {
+        const response = await fetch(`${this.baseUrl}/auth/reset-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, code, newPassword })
+        });
+        return await this.handleResponse(response);
+    }
+
+    async uploadAvatar(imageData) {
+        const response = await fetch(`${this.baseUrl}/users/avatar`, {
+            method: 'POST',
+            headers: this.getHeaders(),
+            body: JSON.stringify({ imageData })
+        });
+        return await this.handleResponse(response);
+    }
+
     async verifyToken() {
         if (!this.token) {
             return null;
@@ -325,12 +352,15 @@ class ApiService {
     // ========== КОМНАТА (ROOM) ==========
     async saveRoom(roomData) {
         try {
+            console.log('saveRoom payload:', roomData);
             const response = await fetch(`${this.baseUrl}/rooms`, {
                 method: 'POST',
                 headers: this.getHeaders(),
                 body: JSON.stringify(roomData)
             });
-            return await this.handleResponse(response);
+            const data = await this.handleResponse(response);
+            console.log('saveRoom response:', data);
+            return data;
         } catch (error) {
             console.error('Ошибка сохранения комнаты:', error);
             throw error;
@@ -339,14 +369,28 @@ class ApiService {
 
     async getRoom(roomName = 'default') {
         try {
-            const response = await fetch(`${this.baseUrl}/rooms/${roomName}`, {
+            const response = await fetch(`${this.baseUrl}/rooms/by-name/${roomName}`, {
+                method: 'GET',
+                headers: this.getHeaders()
+            });
+            if (response.status === 404) return null;
+            return await this.handleResponse(response);
+        } catch (error) {
+            console.error('Ошибка загрузки комнаты:', error);
+            throw error;
+        }
+    }
+
+    async getRoomsList() {
+        try {
+            const response = await fetch(`${this.baseUrl}/rooms/list`, {
                 method: 'GET',
                 headers: this.getHeaders()
             });
             return await this.handleResponse(response);
         } catch (error) {
-            console.error('Ошибка загрузки комнаты:', error);
-            throw error;
+            console.error('Ошибка загрузки списка комнат:', error);
+            return [];
         }
     }
 

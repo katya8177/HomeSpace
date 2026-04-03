@@ -266,6 +266,11 @@
             margin-bottom: 15px;
             line-height: 1.4;
         }
+        .wish-image img { width: 100%; max-height: 220px; object-fit: cover; border-radius: 12px; margin-bottom: 10px; cursor: pointer; }
+        .wish-link { margin: 8px 0; }
+        .wish-link a { color: #4ecca3; text-decoration: none; }
+        .wish-comments { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); }
+        .comment-row { font-size: 12px; color: #ddd; margin-bottom: 6px; }
 
         .wish-meta {
             display: flex;
@@ -502,28 +507,28 @@
 
     <div class="container">
         <div class="header">
-            <h1>🎁 Магазин желаний</h1>
+            <h1>Магазин желаний</h1>
             <p>Копи бонусы и исполняй свои мечты!</p>
         </div>
 
         <div class="bonus-panel" id="bonus-panel">
             <div class="user-info">
-                <div class="user-avatar" id="user-avatar">👤</div>
+                <div class="user-avatar" id="user-avatar"></div>
                 <div class="user-details">
                     <h3 id="user-name">Загрузка...</h3>
                     <p id="user-role"></p>
                 </div>
             </div>
             <div class="bonus-card">
-                <div class="bonus-label">💰 Мои бонусы</div>
+                <div class="bonus-label">Мои бонусы</div>
                 <div class="bonus-value" id="user-bonuses">0</div>
             </div>
         </div>
 
         <div class="tabs" id="tabs">
-            <button class="tab-btn active" data-tab="shop">🛍️ Доступные</button>
+            <button class="tab-btn active" data-tab="shop">Доступные</button>
             <button class="tab-btn" data-tab="create">✨ Новое желание</button>
-            <button class="tab-btn" data-tab="history">📜 История</button>
+            <button class="tab-btn" data-tab="history">История</button>
         </div>
 
         <div style="text-align: center;" id="admin-tab-container"></div>
@@ -549,8 +554,9 @@
         let currentUser = null;
         let wishes = [];
         let currentTab = 'shop';
-        let selectedIcon = '🎁';
+        let selectedIcon = '🎮';
         let pendingApproveWish = null;
+        let localWishExtras = {};
 
         function closeWebView() {
             if (window.parent && window.parent !== window) {
@@ -598,6 +604,7 @@
 
         // Инициализация
         async function init() {
+            try { localWishExtras = JSON.parse(localStorage.getItem('homespace_wish_extras') || '{}'); } catch { localWishExtras = {}; }
             await loadCurrentUser();
             if (!token || !currentUser) {
                 window.location.href = '/';
@@ -615,10 +622,10 @@
                     token = localStorage.getItem('homespace_token');
                     
                     document.getElementById('user-name').textContent = currentUser.name || 'Пользователь';
-                    document.getElementById('user-avatar').textContent = currentUser.avatar || '👤';
+                    document.getElementById('user-avatar').innerHTML = getAvatarHtml(currentUser.avatar, currentUser.name);
                     document.getElementById('user-bonuses').textContent = currentUser.bonuses || 0;
                     
-                    const roleText = currentUser.role === 'parent' ? '👑 Родитель' : '🧒 Ребёнок';
+                    const roleText = currentUser.role === 'parent' ? 'Родитель' : 'Ребёнок';
                     document.getElementById('user-role').textContent = roleText;
                     
                     // Показываем вкладку для админа
@@ -690,7 +697,7 @@
             if (filteredWishes.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
-                        <div class="empty-state-icon">🎁</div>
+                        <div class="empty-state-icon">Нет данных</div>
                         <div>
                             ${currentTab === 'shop' ? 'Нет доступных желаний' : 
                               currentTab === 'pending' ? 'Нет желаний на одобрении' : 
@@ -716,18 +723,29 @@
                 card.innerHTML = `
                     <div class="wish-icon">${wish.icon || '🎁'}</div>
                     <div class="wish-title">${escapeHtml(wish.title)}</div>
+                    ${renderWishImage(wish)}
                     ${wish.description ? `<div class="wish-description">${escapeHtml(wish.description)}</div>` : ''}
+                    ${renderWishLink(wish)}
                     <div class="wish-meta">
                         <span class="wish-price">${wish.approved_price || wish.price}💰</span>
-                        <span class="wish-creator">👤 ${escapeHtml(wish.created_by_name || 'Неизвестно')}</span>
+                        <span class="wish-creator">${escapeHtml(wish.created_by_name || 'Неизвестно')}</span>
                         <span class="wish-status ${wish.status}">${getStatusText(wish.status)}</span>
                     </div>
                     <div class="wish-actions" id="actions-${wish.id}">
                         ${renderActions(wish, canAfford)}
                     </div>
+                    <div class="wish-comments">
+                        ${renderComments(wish.id)}
+                        <div style="display:flex;gap:8px;">
+                            <input id="comment-${wish.id}" type="text" placeholder="Комментарий..." style="margin:0;">
+                            <button class="approve-btn" id="comment-btn-${wish.id}" style="padding:6px 10px;">Отправить</button>
+                        </div>
+                    </div>
                 `;
                 
                 grid.appendChild(card);
+                const commentBtn = document.getElementById(`comment-btn-${wish.id}`);
+                if (commentBtn) commentBtn.onclick = () => addComment(wish.id);
                 
                 // Добавляем обработчики для кнопок
                 if (currentTab === 'shop' && !isPurchased) {
@@ -751,7 +769,7 @@
         function renderActions(wish, canAfford) {
             if (currentTab === 'shop') {
                 if (canAfford) {
-                    return `<button class="buy-btn" id="buy-${wish.id}">🎁 Купить</button>`;
+                    return `<button class="buy-btn" id="buy-${wish.id}">Купить</button>`;
                 } else {
                     const need = (wish.approved_price || wish.price) - (currentUser?.bonuses || 0);
                     return `<button class="buy-btn disabled" disabled>Не хватает ${need}💰</button>`;
@@ -768,7 +786,7 @@
             
             if (currentTab === 'history') {
                 const date = wish.purchased_at ? new Date(wish.purchased_at).toLocaleDateString() : '';
-                return `<div style="font-size:12px; color:#888;">📅 ${date}<br>Купил: ${escapeHtml(wish.purchased_by_name || wish.created_by_name)}</div>`;
+                return `<div style="font-size:12px; color:#888;">${date}<br>Купил: ${escapeHtml(wish.purchased_by_name || wish.created_by_name)}</div>`;
             }
             
             return '';
@@ -784,6 +802,9 @@
                         
                         <input type="text" id="wish-title" placeholder="Название желания" autocomplete="off">
                         <textarea id="wish-description" placeholder="Описание (необязательно)"></textarea>
+                        <input type="url" id="wish-link" placeholder="Ссылка на товар (https://...)">
+                        <input type="url" id="wish-image-url" placeholder="Ссылка на изображение">
+                        <input type="file" id="wish-image-file" accept="image/*">
                         
                         <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
                             <span style="color: white;">💰 Цена:</span>
@@ -842,7 +863,9 @@
                     title: title,
                     description: document.getElementById('wish-description').value,
                     price: parseInt(document.getElementById('wish-price').value) || 50,
-                    icon: selectedIcon
+                    icon: selectedIcon,
+                    imageUrl: await pickWishImage(),
+                    linkUrl: document.getElementById('wish-link').value.trim()
                 });
             };
         }
@@ -862,6 +885,14 @@
                     const error = await response.json();
                     throw new Error(error.error || 'Ошибка создания');
                 }
+                const created = await response.json();
+                if (created?.id) {
+                    localWishExtras[created.id] = {
+                        linkUrl: wishData.linkUrl || '',
+                        comments: []
+                    };
+                    localStorage.setItem('homespace_wish_extras', JSON.stringify(localWishExtras));
+                }
                 
                 alert(currentUser?.role === 'parent' ? '✨ Желание создано!' : '✨ Желание отправлено на одобрение!');
                 setActiveTab('shop');
@@ -876,7 +907,7 @@
             const price = wish.approved_price || wish.price;
             
             if ((currentUser?.bonuses || 0) < price) {
-                alert(`❌ Недостаточно бонусов! Нужно ещё ${price - (currentUser?.bonuses || 0)}💰`);
+                alert(`Недостаточно бонусов! Нужно ещё ${price - (currentUser?.bonuses || 0)}💰`);
                 return;
             }
             
@@ -898,7 +929,7 @@
                 localStorage.setItem('homespace_currentUser', JSON.stringify(currentUser));
                 document.getElementById('user-bonuses').textContent = result.newBalance;
                 
-                alert(`🎉 Поздравляем! Вы купили: ${wish.title}! 🎉`);
+                alert(`Покупка выполнена: ${wish.title}`);
                 await loadWishes();
             } catch (error) {
                 console.error('Ошибка покупки:', error);
@@ -999,9 +1030,55 @@
             switch(status) {
                 case 'approved': return '✅ Одобрено';
                 case 'pending': return '⏳ На одобрении';
-                case 'purchased': return '🎁 Куплено';
+                case 'purchased': return 'Куплено';
                 default: return status;
             }
+        }
+
+        function renderWishImage(wish) {
+            const src = wish.image_url || '';
+            if (!src) return '';
+            return `<div class="wish-image"><img src="${escapeHtml(src)}" alt="wish image" onclick="window.open('${escapeHtml(src)}','_blank')"></div>`;
+        }
+
+        function renderWishLink(wish) {
+            const link = localWishExtras[wish.id]?.linkUrl || '';
+            if (!link) return '';
+            return `<div class="wish-link"><a href="${escapeHtml(link)}" target="_blank" rel="noopener">Перейти к товару</a></div>`;
+        }
+
+        function renderComments(wishId) {
+            const comments = localWishExtras[wishId]?.comments || [];
+            if (!comments.length) return '<div class="comment-row">Комментариев пока нет</div>';
+            return comments.map(c => `<div class="comment-row"><b>${escapeHtml(c.author)}</b>: ${escapeHtml(c.text)}</div>`).join('');
+        }
+
+        function addComment(wishId) {
+            const input = document.getElementById(`comment-${wishId}`);
+            const text = input?.value?.trim();
+            if (!text) return;
+            if (!localWishExtras[wishId]) localWishExtras[wishId] = { linkUrl: '', comments: [] };
+            localWishExtras[wishId].comments.push({ author: currentUser?.name || 'Пользователь', text });
+            localStorage.setItem('homespace_wish_extras', JSON.stringify(localWishExtras));
+            renderContent();
+        }
+
+        async function pickWishImage() {
+            const fileInput = document.getElementById('wish-image-file');
+            const urlInput = document.getElementById('wish-image-url')?.value?.trim();
+            if (urlInput) return urlInput;
+            const file = fileInput?.files?.[0];
+            if (!file) return null;
+            return await toDataUrl(file);
+        }
+
+        function toDataUrl(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
         }
 
         function escapeHtml(text) {
@@ -1009,6 +1086,16 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        function getAvatarHtml(avatar, name) {
+            if (avatar && avatar.startsWith('/assets/uploads/')) {
+                return `<img src="${escapeHtml(avatar)}" style="width:60px;height:60px;border-radius:50%;object-fit:cover;" alt="avatar">`;
+            }
+            const base = (name || 'П').trim();
+            const parts = base.split(/\s+/).filter(Boolean).slice(0, 2);
+            const initials = parts.map(p => p[0]?.toUpperCase() || '').join('') || 'U';
+            return `<span style="font-size:18px;font-weight:700;color:#fff;">${escapeHtml(initials)}</span>`;
         }
 
         // Запуск

@@ -207,6 +207,7 @@
             width: 100%;
             margin-top: 20px;
         }
+        .theme-toggle { background: rgba(78, 204, 163, 0.2); border: 1px solid #4ecca3; padding: 8px 12px; border-radius: 20px; color: #fff; cursor: pointer; }
 
         .create-family-btn {
             background: linear-gradient(135deg, #4ecca3, #3ba87f);
@@ -410,24 +411,24 @@
 
     <div class="container">
         <div class="header">
-            <h1>⚙️ Настройки</h1>
+            <h1>Настройки</h1>
         </div>
 
         <div class="tabs" id="tabs">
-            <button class="tab-btn active" data-tab="profile">👤 Профиль</button>
-            <button class="tab-btn" data-tab="family">👨‍👩‍👧‍👦 Семья</button>
-            <button class="tab-btn" data-tab="stats">📊 Статистика</button>
+            <button class="tab-btn active" data-tab="profile">Профиль</button>
+            <button class="tab-btn" data-tab="family">Семья</button>
+            <button class="tab-btn" data-tab="stats">Статистика</button>
         </div>
 
         <div id="content-container"></div>
 
-        <button class="logout-btn" id="logout-btn">🚪 Выйти из аккаунта</button>
+        <button class="logout-btn" id="logout-btn">Выйти из аккаунта</button>
     </div>
 
     <!-- Модальное окно изменения имени -->
     <div class="modal" id="name-modal">
         <div class="modal-content">
-            <h3>✎ Изменить имя</h3>
+            <h3>Изменить имя</h3>
             <input type="text" id="new-name" placeholder="Новое имя">
             <div class="modal-buttons">
                 <button class="modal-cancel" id="name-cancel">Отмена</button>
@@ -439,7 +440,7 @@
     <!-- Модальное окно создания семьи -->
     <div class="modal" id="family-modal">
         <div class="modal-content">
-            <h3>👨‍👩‍👧‍👦 Создать семью</h3>
+            <h3>Создать семью</h3>
             <input type="text" id="family-name" placeholder="Название семьи">
             <div class="modal-buttons">
                 <button class="modal-cancel" id="family-cancel">Отмена</button>
@@ -451,7 +452,7 @@
     <!-- Модальное окно присоединения к семье -->
     <div class="modal" id="join-modal">
         <div class="modal-content">
-            <h3>🔑 Присоединиться к семье</h3>
+            <h3>Присоединиться к семье</h3>
             <input type="text" id="join-code" placeholder="Код приглашения" style="text-transform: uppercase;">
             <div class="modal-buttons">
                 <button class="modal-cancel" id="join-cancel">Отмена</button>
@@ -580,33 +581,32 @@
         }
 
         function renderProfile(container) {
-            const avatars = ['👩', '👨', '👧', '👦', '🧑', '👵', '👴', '🐶', '🐱', '🦊', '🐼', '🐨'];
-            
+            const currentTheme = localStorage.getItem('homespace_theme') || 'dark';
             container.innerHTML = `
                 <div class="settings-card">
-                    <div class="settings-title">👤 Профиль</div>
+                    <div class="settings-title">Профиль</div>
                     
                     <div class="settings-row">
-                        <div class="settings-label">Аватар</div>
+                        <div class="settings-label">Фото</div>
                         <div class="settings-value">
-                            <div style="font-size: 48px;" id="current-avatar">${currentUser?.avatar || '👤'}</div>
+                            <div style="font-size: 24px;" id="current-avatar"></div>
+                            <input type="file" id="avatar-upload" accept="image/*" style="display:none;">
+                            <button class="edit-btn" id="avatar-upload-btn">Загрузить фото</button>
                         </div>
                     </div>
-                    
-                    <div class="avatars-grid" id="avatars-grid"></div>
                     
                     <div class="settings-row">
                         <div class="settings-label">Имя</div>
                         <div class="settings-value">
                             <span id="user-name-display">${escapeHtml(currentUser?.name || 'Пользователь')}</span>
-                            <button class="edit-btn" id="edit-name-btn">✎ Изменить</button>
+                            <button class="edit-btn" id="edit-name-btn">Изменить</button>
                         </div>
                     </div>
                     
                     <div class="settings-row">
                         <div class="settings-label">Роль</div>
                         <div class="settings-value">
-                            <span>${currentUser?.role === 'parent' ? '👑 Родитель' : '🧒 Ребёнок'}</span>
+                            <span>${currentUser?.role === 'parent' ? 'Родитель' : 'Ребёнок'}</span>
                         </div>
                     </div>
                     
@@ -616,18 +616,18 @@
                             <span>${escapeHtml(currentUser?.email || '—')}</span>
                         </div>
                     </div>
+                    <div class="settings-row">
+                        <div class="settings-label">Тема</div>
+                        <div class="settings-value">
+                            <button class="theme-toggle" id="theme-toggle">${currentTheme === 'dark' ? 'Темная' : 'Светлая'}</button>
+                        </div>
+                    </div>
                 </div>
             `;
             
-            // Аватары
-            const avatarsGrid = document.getElementById('avatars-grid');
-            avatars.forEach(avatar => {
-                const avatarDiv = document.createElement('div');
-                avatarDiv.className = `avatar-option ${currentUser?.avatar === avatar ? 'selected' : ''}`;
-                avatarDiv.textContent = avatar;
-                avatarDiv.onclick = () => updateAvatar(avatar);
-                avatarsGrid.appendChild(avatarDiv);
-            });
+            document.getElementById('current-avatar').innerHTML = getAvatarHtml(currentUser?.avatar, currentUser?.name);
+            document.getElementById('avatar-upload-btn').onclick = () => document.getElementById('avatar-upload').click();
+            document.getElementById('avatar-upload').onchange = onAvatarUpload;
             
             // Изменение имени
             document.getElementById('edit-name-btn').onclick = () => {
@@ -635,6 +635,7 @@
                 document.getElementById('new-name').value = currentUser?.name || '';
                 modal.classList.add('active');
             };
+            document.getElementById('theme-toggle').onclick = toggleTheme;
         }
 
         function renderFamily(container) {
@@ -644,13 +645,13 @@
             if (!hasFamily) {
                 container.innerHTML = `
                     <div class="settings-card">
-                        <div class="settings-title">👨‍👩‍👧‍👦 Семья</div>
+                    <div class="settings-title">Семья</div>
                         <div style="text-align: center; padding: 30px;">
-                            <div style="font-size: 64px; margin-bottom: 15px;">🏠</div>
+                            <div style="font-size: 24px; margin-bottom: 15px;">Нет семьи</div>
                             <p style="color: white; margin-bottom: 20px;">Вы пока не состоите в семье</p>
                             <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
-                                ${isParent ? '<button class="create-family-btn" id="create-family-btn">✨ Создать семью</button>' : ''}
-                                <button class="join-family-btn" id="join-family-btn">🔑 Присоединиться по коду</button>
+                                ${isParent ? '<button class="create-family-btn" id="create-family-btn">Создать семью</button>' : ''}
+                                <button class="join-family-btn" id="join-family-btn">Присоединиться по коду</button>
                             </div>
                         </div>
                     </div>
@@ -676,10 +677,10 @@
                 membersHtml += `
                     <div class="member-item">
                         <div class="member-info">
-                            <div class="member-avatar">${member.avatar || '👤'}</div>
+                            <div class="member-avatar">${getAvatarHtml(member.avatar, member.name)}</div>
                             <div>
                                 <div class="member-name">${escapeHtml(member.name)}${isCurrent ? ' (Вы)' : ''}</div>
-                                <div class="member-role">${member.role === 'parent' ? '👑 Родитель' : '🧒 Ребёнок'}</div>
+                                <div class="member-role">${member.role === 'parent' ? 'Родитель' : 'Ребёнок'}</div>
                             </div>
                         </div>
                         <div class="online-dot ${isOnline ? '' : 'offline'}"></div>
@@ -689,13 +690,13 @@
             
             container.innerHTML = `
                 <div class="settings-card">
-                    <div class="settings-title">👨‍👩‍👧‍👦 ${escapeHtml(family?.name || 'Моя семья')}</div>
+                    <div class="settings-title">${escapeHtml(family?.name || 'Моя семья')}</div>
                     
                     <div class="settings-row">
                         <div class="settings-label">Код приглашения</div>
                         <div class="settings-value">
                             <span class="invite-code" id="invite-code">${family?.invite_code || '—'}</span>
-                            <button class="copy-btn" id="copy-code">📋 Копировать</button>
+                            <button class="copy-btn" id="copy-code">Копировать</button>
                         </div>
                     </div>
                     
@@ -727,61 +728,67 @@
             
             container.innerHTML = `
                 <div class="settings-card">
-                    <div class="settings-title">📊 Моя статистика</div>
+                    <div class="settings-title">Моя статистика</div>
                     
                     <div class="stat-item">
-                        <span class="stat-label">📋 Всего заданий</span>
+                        <span class="stat-label">Всего заданий</span>
                         <span class="stat-value">${userTasks.length}</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-label">✅ Выполнено заданий</span>
+                        <span class="stat-label">Выполнено заданий</span>
                         <span class="stat-value">${completedTasks.length}</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-label">⏳ В ожидании</span>
+                        <span class="stat-label">В ожидании</span>
                         <span class="stat-value">${userTasks.length - completedTasks.length}</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-label">💰 Заработано бонусов</span>
+                        <span class="stat-label">Заработано бонусов</span>
                         <span class="stat-value">${totalBonuses}</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-label">💎 Текущий баланс</span>
+                        <span class="stat-label">Текущий баланс</span>
                         <span class="stat-value">${currentUser?.bonuses || 0}</span>
                     </div>
                 </div>
                 
                 <div class="settings-card">
-                    <div class="settings-title">📅 Информация об аккаунте</div>
+                    <div class="settings-title">Информация об аккаунте</div>
                     <div class="stat-item">
-                        <span class="stat-label">🆔 ID пользователя</span>
+                        <span class="stat-label">ID пользователя</span>
                         <span class="stat-value" style="font-size: 11px;">${currentUser?.id || '—'}</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-label">📧 Email</span>
+                        <span class="stat-label">Email</span>
                         <span class="stat-value">${escapeHtml(currentUser?.email || '—')}</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-label">📅 Дата регистрации</span>
+                        <span class="stat-label">Дата регистрации</span>
                         <span class="stat-value">${currentUser?.created_at ? new Date(currentUser.created_at).toLocaleDateString() : '—'}</span>
                     </div>
                 </div>
             `;
         }
 
-        async function updateAvatar(avatar) {
+        async function onAvatarUpload(e) {
             try {
-                currentUser.avatar = avatar;
-                localStorage.setItem('homespace_currentUser', JSON.stringify(currentUser));
-                
-                // Обновляем отображение
-                document.getElementById('current-avatar').textContent = avatar;
-                document.querySelectorAll('.avatar-option').forEach(el => {
-                    el.classList.remove('selected');
-                    if (el.textContent === avatar) el.classList.add('selected');
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const imageData = await toSquareDataUrl(file, 256);
+                const response = await fetch(`${API_URL}/users/avatar`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ imageData })
                 });
-                
-                alert('✅ Аватар обновлён!');
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Ошибка загрузки');
+                currentUser.avatar = data.avatar;
+                localStorage.setItem('homespace_currentUser', JSON.stringify(currentUser));
+                document.getElementById('current-avatar').innerHTML = getAvatarHtml(currentUser.avatar, currentUser.name);
+                alert('Фото обновлено');
             } catch (error) {
                 console.error('Ошибка обновления аватара:', error);
             }
@@ -956,7 +963,61 @@
             return div.innerHTML;
         }
 
+        function getAvatarHtml(avatar, name) {
+            if (avatar && avatar.startsWith('/assets/uploads/')) {
+                return `<img src="${escapeHtml(avatar)}" alt="avatar" style="width:36px;height:36px;border-radius:50%;object-fit:cover;">`;
+            }
+            const base = (name || 'П').trim();
+            const parts = base.split(/\s+/).filter(Boolean).slice(0, 2);
+            const initials = parts.map(p => p[0]?.toUpperCase() || '').join('') || 'U';
+            return `<span style="font-size:12px;font-weight:700;">${escapeHtml(initials)}</span>`;
+        }
+
+        function toSquareDataUrl(file, size = 256) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const side = Math.min(img.width, img.height);
+                        const sx = (img.width - side) / 2;
+                        const sy = (img.height - side) / 2;
+                        const canvas = document.createElement('canvas');
+                        canvas.width = size;
+                        canvas.height = size;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
+                        resolve(canvas.toDataURL('image/jpeg', 0.9));
+                    };
+                    img.onerror = reject;
+                    img.src = reader.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function toggleTheme() {
+            const current = localStorage.getItem('homespace_theme') || 'dark';
+            const next = current === 'dark' ? 'light' : 'dark';
+            localStorage.setItem('homespace_theme', next);
+            applyTheme();
+            renderContent();
+        }
+
+        function applyTheme() {
+            const theme = localStorage.getItem('homespace_theme') || 'dark';
+            if (theme === 'light') {
+                document.body.style.background = 'linear-gradient(135deg, #f4f7fb 0%, #e7edf8 100%)';
+                document.body.style.color = '#1f2937';
+            } else {
+                document.body.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)';
+                document.body.style.color = '#ffffff';
+            }
+        }
+
         // Запуск
+        applyTheme();
         init();
     </script>
 </body>

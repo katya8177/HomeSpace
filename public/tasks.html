@@ -130,6 +130,10 @@
             flex-wrap: wrap;
             justify-content: center;
         }
+        .search-row { display:flex; justify-content:center; margin-bottom: 15px; }
+        .search-input { width:min(560px, 100%); padding:10px 14px; border-radius: 12px; border:1px solid rgba(78,204,163,.4); background: rgba(0,0,0,.35); color:#fff; }
+        .subtasks { margin-top:8px; display:flex; flex-direction:column; gap:4px; }
+        .subtask-item { font-size:12px; color:#ddd; }
 
         .filter-btn {
             background: rgba(44, 62, 80, 0.8);
@@ -438,7 +442,7 @@
     </div>
     <div class="container">
         <div class="header">
-            <h1>📋 Управление заданиями</h1>
+            <h1>Управление заданиями</h1>
             <p>Создавайте, выполняйте и зарабатывайте бонусы!</p>
         </div>
 
@@ -461,7 +465,7 @@
             </div>
             <div class="stat-card">
                 <div class="stat-value" id="total-bonuses">0</div>
-                <div class="stat-label">💰 Заработано</div>
+                <div class="stat-label">Заработано</div>
             </div>
         </div>
 
@@ -471,16 +475,19 @@
             <button class="filter-btn" data-filter="pending">В ожидании</button>
             <button class="filter-btn" data-filter="completed">Выполненные</button>
         </div>
+        <div class="search-row">
+            <input id="tasks-search" class="search-input" type="text" placeholder="Поиск по заданиям...">
+        </div>
 
         <div style="text-align: center;">
             <button class="create-task-btn" id="create-task-btn">
-                ✨ Создать задание
+                Создать задание
             </button>
         </div>
 
         <div class="tasks-list" id="tasks-list">
             <div class="empty-state">
-                <div class="empty-state-icon">📋</div>
+                <div class="empty-state-icon">Список</div>
                 <div>Загрузка заданий...</div>
             </div>
         </div>
@@ -489,7 +496,7 @@
     <!-- Модальное окно создания задания -->
     <div class="modal" id="task-modal">
         <div class="modal-content">
-            <h3>✨ Создать задание</h3>
+            <h3>Создать задание</h3>
             <input type="text" id="task-title" placeholder="Название задания" autocomplete="off">
             <textarea id="task-description" placeholder="Описание (необязательно)"></textarea>
             <div class="bonus-control">
@@ -516,6 +523,8 @@
         let tasks = [];
         let familyMembers = [];
         let currentFilter = 'all';
+        let searchQuery = '';
+        let subtasksStore = {};
                 function closeWebView() {
             if (window.parent && window.parent !== window) {
                 window.parent.postMessage('close-webview', '*');
@@ -561,6 +570,7 @@
     handleResize();
         // Инициализация
         async function init() {
+            try { subtasksStore = JSON.parse(localStorage.getItem('homespace_subtasks') || '{}'); } catch { subtasksStore = {}; }
             await loadCurrentUser();
             if (!token || !currentUser) {
                 window.location.href = '/';
@@ -609,7 +619,7 @@
                 if (member.id !== currentUser?.id) {
                     const option = document.createElement('option');
                     option.value = member.id;
-                    option.textContent = `${member.avatar || '👤'} ${member.name} (${member.role === 'parent' ? 'Родитель' : 'Ребёнок'})`;
+                    option.textContent = `${member.name} (${member.role === 'parent' ? 'Родитель' : 'Ребёнок'})`;
                     select.appendChild(option);
                 }
             });
@@ -639,7 +649,7 @@
                 console.error('Ошибка загрузки заданий:', error);
                 document.getElementById('tasks-list').innerHTML = `
                     <div class="empty-state">
-                        <div class="empty-state-icon">❌</div>
+                        <div class="empty-state-icon">Ошибка</div>
                         <div>Ошибка загрузки заданий</div>
                     </div>
                 `;
@@ -657,11 +667,17 @@
                     t.assigned_to === currentUser.id || t.created_by === currentUser.id
                 );
             }
+            if (searchQuery) {
+                const q = searchQuery.toLowerCase();
+                filteredTasks = filteredTasks.filter(t =>
+                    `${t.title || ''} ${t.description || ''}`.toLowerCase().includes(q)
+                );
+            }
             
             if (!filteredTasks || filteredTasks.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
-                        <div class="empty-state-icon">📋</div>
+                        <div class="empty-state-icon">Список</div>
                         <div>Нет заданий</div>
                         <div style="font-size:12px; margin-top:8px;">Создайте новое задание!</div>
                     </div>
@@ -685,17 +701,24 @@
                         <div class="task-title">
                             ${task.title || 'Без названия'}
                             <span class="task-status ${isCompleted ? 'completed' : ''}">
-                                ${isCompleted ? '✅ Выполнено' : '⏳ В ожидании'}
+                                ${isCompleted ? 'Выполнено' : 'В ожидании'}
                             </span>
                         </div>
                         ${task.description ? `<div class="task-description">${escapeHtml(task.description)}</div>` : ''}
                         <div class="task-meta">
                             <span class="task-bonus">💰 ${task.bonus || 0} бонусов</span>
-                            ${task.item_name ? `<span>📍 ${task.item_name}</span>` : ''}
+                            ${task.item_name ? `<span>${task.item_name}</span>` : ''}
                             <span class="task-assigned">
-                                👤 ${task.assigned_to_name || 'Не назначено'}
+                                ${task.assigned_to_name || 'Не назначено'}
                             </span>
-                            ${task.created_by_name ? `<span>📝 от ${task.created_by_name}</span>` : ''}
+                            ${task.created_by_name ? `<span>от ${task.created_by_name}</span>` : ''}
+                        </div>
+                        <div class="subtasks">
+                            ${renderSubtasks(task.id)}
+                            <div style="display:flex; gap:6px;">
+                                <input id="subtask-input-${task.id}" type="text" placeholder="Подзадача..." style="margin:0; padding:4px 8px; font-size:12px; border-radius:8px; border:1px solid rgba(78,204,163,.4); background:rgba(0,0,0,.3); color:#fff;">
+                                <button class="complete-btn" style="padding:4px 10px;" data-subtask-add="${task.id}">+</button>
+                            </div>
                         </div>
                     </div>
                     <div class="task-actions">
@@ -719,6 +742,9 @@
             document.querySelectorAll('.delete-btn').forEach(btn => {
                 btn.addEventListener('click', () => deleteTask(btn.dataset.id));
             });
+            document.querySelectorAll('[data-subtask-add]').forEach(btn => {
+                btn.addEventListener('click', () => addSubtask(btn.dataset.subtaskAdd));
+            });
         }
 
         function updateStats() {
@@ -735,6 +761,14 @@
             document.getElementById('pending-tasks').textContent = pending;
             document.getElementById('my-tasks').textContent = myTasks;
             document.getElementById('total-bonuses').textContent = totalBonuses;
+            const weekdayCount = [0,0,0,0,0,0,0];
+            tasks.filter(t => t.status === 'completed' && t.updated_at).forEach(t => {
+                weekdayCount[new Date(t.updated_at).getDay()] += 1;
+            });
+            const max = Math.max(...weekdayCount);
+            const bestDay = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'][weekdayCount.indexOf(max)] || '—';
+            const myCard = document.getElementById('my-tasks');
+            if (myCard?.parentElement) myCard.parentElement.title = `Самый продуктивный день: ${bestDay}`;
         }
 
         async function completeTask(taskId, bonus) {
@@ -748,7 +782,7 @@
                 
                 const result = await response.json();
                 
-                alert(`✅ Задание выполнено! +${bonus} бонусов!`);
+                alert(`Задание выполнено! +${bonus} бонусов!`);
                 
                 // Обновляем бонусы пользователя
                 if (currentUser) {
@@ -759,7 +793,7 @@
                 await loadTasks();
             } catch (error) {
                 console.error('Ошибка выполнения:', error);
-                alert('❌ Не удалось выполнить задание');
+                alert('Не удалось выполнить задание');
             }
         }
 
@@ -778,7 +812,7 @@
                 await loadTasks();
             } catch (error) {
                 console.error('Ошибка удаления:', error);
-                alert('❌ Не удалось удалить задание');
+                alert('Не удалось удалить задание');
             }
         }
 
@@ -798,12 +832,12 @@
                     throw new Error(error.error || 'Ошибка создания');
                 }
                 
-                alert('✅ Задание создано!');
+                alert('Задание создано');
                 closeModal();
                 await loadTasks();
             } catch (error) {
                 console.error('Ошибка создания:', error);
-                alert('❌ ' + error.message);
+                alert(error.message);
             }
         }
 
@@ -872,7 +906,38 @@
                     closeModal();
                 }
             };
+            const searchInput = document.getElementById('tasks-search');
+            if (searchInput) {
+                searchInput.addEventListener('input', () => {
+                    searchQuery = searchInput.value.trim();
+                    renderTasks();
+                });
+            }
         }
+
+        function renderSubtasks(taskId) {
+            const items = subtasksStore[taskId] || [];
+            if (!items.length) return '<div class="subtask-item">Подзадач нет</div>';
+            return items.map((s, i) => `<label class="subtask-item"><input type="checkbox" ${s.done ? 'checked' : ''} onchange="toggleSubtask('${taskId}', ${i})"> ${escapeHtml(s.text)}</label>`).join('');
+        }
+
+        function addSubtask(taskId) {
+            const input = document.getElementById(`subtask-input-${taskId}`);
+            const text = input?.value?.trim();
+            if (!text) return;
+            if (!subtasksStore[taskId]) subtasksStore[taskId] = [];
+            subtasksStore[taskId].push({ text, done: false });
+            localStorage.setItem('homespace_subtasks', JSON.stringify(subtasksStore));
+            renderTasks();
+        }
+
+        window.toggleSubtask = function(taskId, index) {
+            const list = subtasksStore[taskId] || [];
+            if (!list[index]) return;
+            list[index].done = !list[index].done;
+            localStorage.setItem('homespace_subtasks', JSON.stringify(subtasksStore));
+            renderTasks();
+        };
 
         function escapeHtml(text) {
             if (!text) return '';
