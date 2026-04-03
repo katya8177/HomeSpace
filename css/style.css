@@ -1,4 +1,4 @@
-/* public/css/style.css */
+/* docs/css/style.css */
 * {
     margin: 0;
     padding: 0;
@@ -43,11 +43,25 @@ body::after {
     width: 1280px;
     height: 800px;
     position: relative;
-    z-index: 10;
+    z-index: 100;
     border-radius: 40px;
     overflow: hidden;
     box-shadow: 0 30px 60px rgba(0, 0, 0, 0.3), 0 0 0 2px rgba(255, 255, 255, 0.5), 0 0 30px rgba(102, 126, 234, 0.5);
     backdrop-filter: blur(10px);
+}
+
+#game {
+    position: relative;
+    z-index: 110;
+}
+
+canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    image-rendering: crisp-edges;
+    position: relative;
+    z-index: 115;
 }
 
 #ui-root {
@@ -55,7 +69,35 @@ body::after {
     inset: 0;
     pointer-events: none;
     display: none;
+    z-index: 120;
 }
+
+.panel {
+    pointer-events: auto;
+    z-index: 130;
+    position: absolute;
+    top: 18px;
+    left: 18px;
+    width: 320px;
+    max-height: calc(100% - 36px);
+    background: rgba(15, 15, 26, 0.82);
+    color: #fff;
+    border: 1px solid rgba(78, 204, 163, 0.55);
+    border-radius: 18px;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 18px 40px rgba(0,0,0,0.35);
+}
+
+#game-container.debug-outline {
+    outline: 4px dashed #ffdd00;
+    box-shadow: 0 0 0 3px rgba(255, 221, 0, 0.8), 0 30px 60px rgba(0, 0, 0, 0.3), 0 0 0 2px rgba(255, 255, 255, 0.5), 0 0 30px rgba(102, 126, 234, 0.5);
+}
+
+#game.debug-overlay {
+    border: 2px dashed #4ecca3;
+}
+
 
 .panel {
     pointer-events: auto;

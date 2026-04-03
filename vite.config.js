@@ -3,7 +3,7 @@ import { defineConfig } from 'vite';
 import { resolve } from 'path';
 
 export default defineConfig({
-    root: 'public',
+    root: 'docs',
     base: './',
     publicDir: 'assets',
     server: {
@@ -15,12 +15,12 @@ export default defineConfig({
         emptyOutDir: true,
         rollupOptions: {
             input: {
-                main: resolve(__dirname, 'public/index.html'),
-                game: resolve(__dirname, 'public/game.html'),
-                tasks: resolve(__dirname, 'public/tasks.html'),
-                chat: resolve(__dirname, 'public/chat.html'),
-                wishes: resolve(__dirname, 'public/wishes.html'),
-                settings: resolve(__dirname, 'public/settings.html')
+                main: resolve(__dirname, 'docs/index.html'),
+                game: resolve(__dirname, 'docs/game.html'),
+                tasks: resolve(__dirname, 'docs/tasks.html'),
+                chat: resolve(__dirname, 'docs/chat.html'),
+                wishes: resolve(__dirname, 'docs/wishes.html'),
+                settings: resolve(__dirname, 'docs/settings.html')
             }
         }
     }

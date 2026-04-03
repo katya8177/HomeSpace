@@ -800,11 +800,22 @@ export class EditorScene extends Phaser.Scene {
     
     selectItemForPlacement(key) {
         const itemData = furnitureData[key];
+        console.log(`selectItemForPlacement: ${key}`, itemData);
         if (!itemData) {
             console.error(`Предмет ${key} не найден`);
             return;
         }
-        this.showRotationSelector(key, itemData);
+
+        // Убедимся, что нужная категория загружена
+        loadCategoryFurniture(this, itemData.category)
+            .then(() => {
+                this.showRotationSelector(key, itemData);
+                console.log(`Текстуры категории ${itemData.category} загружены`);
+            })
+            .catch((error) => {
+                console.warn(`Не удалось загрузить категорию ${itemData.category}:`, error);
+                this.showRotationSelector(key, itemData);
+            });
     }
     
     showRotationSelector(itemKey, itemData) {
@@ -1004,7 +1015,7 @@ export class EditorScene extends Phaser.Scene {
         });
     }
     
-    placeItem(pointer) {
+    async placeItem(pointer) {
         if (!this.selectedItem || !this.selectedRotation) {
             console.log('Сначала выберите предмет и ракурс');
             return;
@@ -1012,6 +1023,16 @@ export class EditorScene extends Phaser.Scene {
         
         const data = furnitureData[this.selectedItem];
         const camera = this.cameras.main;
+        const textureKey = `${this.selectedItem}_${this.selectedRotation}`;
+
+        if (!this.textures.exists(textureKey)) {
+            console.warn(`Текстура ${textureKey} не найдена, пробуем загрузить`);
+            try {
+                await loadSingleTexture(this, this.selectedItem, this.selectedRotation);
+            } catch (error) {
+                console.error(`Не удалось загрузить текстуру ${textureKey}:`, error);
+            }
+        }
         
         const { x: worldX, y: worldY } = this.getPointerWorld(pointer);
         
@@ -1029,12 +1050,11 @@ export class EditorScene extends Phaser.Scene {
             return;
         }
         
-        const textureKey = `${this.selectedItem}_${this.selectedRotation}`;
-        
         let item;
         if (this.textures.exists(textureKey)) {
             item = this.add.image(finalX, finalY, textureKey);
         } else {
+            console.warn(`Текстура ${textureKey} отсутствует, используем плейсхолдер`);
             item = this.add.rectangle(finalX, finalY, 50, 50, 0x4ecca3);
         }
         
@@ -2201,6 +2221,37 @@ export class EditorScene extends Phaser.Scene {
         this.dragFeedbackGraphics.clear();
     }
     
+    debugPlaceItem(key = 'shower', rotation = 'NE') {
+        console.log('debugPlaceItem', key, rotation);
+
+        if (!furnitureData[key]) {
+            console.warn(`debugPlaceItem: предмет ${key} не найден в furnitureData`);
+            return;
+        }
+
+        const scene = this;
+        const camera = scene.cameras.main;
+        const centerX = camera.worldView.centerX;
+        const centerY = camera.worldView.centerY;
+
+        this.selectedItem = key;
+        this.selectedRotation = rotation;
+        this.placementMode = false;
+
+        if (!this.textures.exists(`${key}_${rotation}`)) {
+            loadSingleTexture(this, key, rotation)
+                .then(() => {
+                    console.log(`debugPlaceItem: загружена ${key}_${rotation}`);
+                    this.placeItem({ x: centerX - camera.scrollX, y: centerY - camera.scrollY });
+                }).catch((err) => {
+                    console.error('debugPlaceItem: ошибка загрузки', err);
+                    this.placeItem({ x: centerX - camera.scrollX, y: centerY - camera.scrollY });
+                });
+        } else {
+            this.placeItem({ x: centerX - camera.scrollX, y: centerY - camera.scrollY });
+        }
+    }
+
     destroy() {
         this._disposables.run();
         super.destroy();

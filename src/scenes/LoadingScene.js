@@ -1,4 +1,4 @@
-import { loadAllFurniture, preloadCommonFurniture } from '../utils/assetLoader.js';
+import { loadAllFurniture, preloadCommonFurniture, checkPaths } from '../utils/assetLoader.js';
 
 export class LoadingScene extends Phaser.Scene {
     constructor() {
@@ -99,6 +99,7 @@ export class LoadingScene extends Phaser.Scene {
         });
         
         // Загружаем всю мебель на основе furnitureData
+        checkPaths();
         const totalFiles = loadAllFurniture(this);
         statusText.setText(`Загрузка ${totalFiles} текстур...`);
         

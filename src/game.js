@@ -21,8 +21,12 @@ const config = {
 };
 
 try {
-    new Phaser.Game(config);
+    const game = new Phaser.Game(config);
     console.log('Phaser editor instance created');
+
+    // Экспортируем сцену в глобальную область для отладки
+    window.homespaceGame = game;
+    window.getEditorScene = () => game?.scene?.getScene('EditorScene');
 } catch (error) {
     console.error('Failed to initialize editor', error);
     const errorNode = document.getElementById('editor-error');

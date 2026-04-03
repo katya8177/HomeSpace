@@ -15,7 +15,7 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const uploadsDir = path.join(__dirname, '..', 'public', 'assets', 'uploads');
+const uploadsDir = path.join(__dirname, '..', 'docs', 'assets', 'uploads');
 const passwordResetCodes = new Map();
 
 if (!fs.existsSync(uploadsDir)) {

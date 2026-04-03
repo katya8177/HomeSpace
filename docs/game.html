@@ -59,6 +59,10 @@
     <a href="/" class="back-to-menu">
         ← Назад в меню
     </a>
+    <div class="dev-controls">
+        <button id="debug-outline-btn" type="button">Debug outline</button>
+        <button id="toggle-panel-btn" type="button">Скрыть панель</button>
+    </div>
     <div id="game-container">
         <div id="game"></div>
         <div id="ui-root" aria-live="polite">
@@ -99,6 +103,54 @@
         window.addEventListener('error', () => {
             const el = document.getElementById('editor-error');
             if (el) el.style.display = 'flex';
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const gameContainer = document.getElementById('game-container');
+            const gameElem = document.getElementById('game');
+            const panel = document.querySelector('.panel');
+            const debugBtn = document.getElementById('debug-outline-btn');
+            const toggleBtn = document.getElementById('toggle-panel-btn');
+
+            const addShowerBtn = document.createElement('button');
+            addShowerBtn.id = 'add-shower-btn';
+            addShowerBtn.type = 'button';
+            addShowerBtn.textContent = 'Добавить душ (shower)';
+            addShowerBtn.style.marginLeft = '10px';
+            addShowerBtn.style.padding = '6px 10px';
+            addShowerBtn.style.borderRadius = '8px';
+            addShowerBtn.style.border = '1px solid #4ecca3';
+            addShowerBtn.style.background = 'rgba(0,0,0,0.4)';
+            addShowerBtn.style.color = '#fff';
+
+            const devControls = document.querySelector('.dev-controls');
+            if (devControls) devControls.appendChild(addShowerBtn);
+
+            if (debugBtn && gameContainer) {
+                debugBtn.addEventListener('click', () => {
+                    gameContainer.classList.toggle('debug-outline');
+                    gameElem.classList.toggle('debug-overlay');
+                });
+            }
+
+            if (addShowerBtn) {
+                addShowerBtn.addEventListener('click', () => {
+                    const scene = window.getEditorScene?.();
+                    if (scene) {
+                        scene.debugPlaceItem('shower', 'NE');
+                    } else {
+                        console.warn('EditorScene не найдена');
+                    }
+                });
+            }
+
+            if (toggleBtn && panel) {
+                toggleBtn.addEventListener('click', () => {
+                    const hidden = panel.style.display === 'none';
+                    panel.style.display = hidden ? 'block' : 'none';
+                    toggleBtn.textContent = hidden ? 'Скрыть панель' : 'Показать панель';
+                });
+            }
         });
     </script>
 </body>
