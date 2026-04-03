@@ -96,6 +96,9 @@ export class EditorScene extends Phaser.Scene {
     create() {
         const { width, height } = this.cameras.main;
         console.log('EditorScene create started');
+        this.add.text(20, 20, 'EditorScene active', { fontSize: '18px', fill: '#ffff00' }).setDepth(9999);
+        this.add.rectangle(100, 120, 50, 50, 0xff0000, 0.6).setDepth(9998);
+        window.editorSceneReady = true;
         
         // Загружаем пользователя
         this.loadCurrentUser();

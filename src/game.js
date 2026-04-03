@@ -27,6 +27,18 @@ try {
     // Экспортируем сцену в глобальную область для отладки
     window.homespaceGame = game;
     window.getEditorScene = () => game?.scene?.getScene('EditorScene');
+
+    // Проверяем, что сцена действительно загрузилась
+    setTimeout(() => {
+        const s = window.getEditorScene?.();
+        if (s) {
+            console.log('EditorScene is ready', s);
+            const debugText = s.add.text(20, 46, 'Scene check: OK', { fontSize: '16px', fill: '#00ff00' }).setDepth(9999);
+            setTimeout(() => debugText.destroy(), 5000);
+        } else {
+            console.warn('EditorScene is not available yet');
+        }
+    }, 1500);
 } catch (error) {
     console.error('Failed to initialize editor', error);
     const errorNode = document.getElementById('editor-error');
