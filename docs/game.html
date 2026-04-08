@@ -2,32 +2,61 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>HomeSpace - Редактор комнаты</title>
-    <link rel="stylesheet" href="/css/style.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body {
+        * {
             margin: 0;
             padding: 0;
-            background-color: #1a1a2e;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
-            font-family: 'Inter', Arial, sans-serif;
+            position: relative;
+            overflow: hidden;
         }
+
+        body::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 20% 50%, rgba(78, 204, 163, 0.15) 0%, transparent 50%);
+            animation: pulse 8s ease-in-out infinite;
+        }
+
+        body::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 80% 80%, rgba(255, 215, 0, 0.1) 0%, transparent 50%);
+            animation: pulse 12s ease-in-out infinite reverse;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.1); }
+        }
+
         #game-container {
             width: 1280px;
             height: 800px;
             position: relative;
+            z-index: 10;
+            border-radius: 40px;
+            overflow: hidden;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.3), 0 0 0 2px rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(10px);
         }
-        #game {
-            width: 100%;
-            height: 100%;
-        }
+
         .back-to-menu {
             position: fixed;
             top: 20px;
@@ -48,10 +77,309 @@
             transition: all 0.2s ease;
             text-decoration: none;
         }
+
         .back-to-menu:hover {
             background: rgba(78, 204, 163, 0.3);
             border-color: #4ecca3;
             transform: translateX(-3px);
+        }
+
+        #ui-root {
+            position: absolute;
+            inset: 0;
+            pointer-events: none !important;
+            z-index: 200;
+        }
+        
+        #ui-root * {
+            pointer-events: auto !important;
+        }
+
+        .panel {
+            position: absolute;
+            top: 18px;
+            left: 18px;
+            width: 360px;
+            max-height: calc(100% - 36px);
+            background: rgba(15, 15, 26, 0.95);
+            backdrop-filter: blur(10px);
+            color: #fff;
+            border: 1px solid rgba(78, 204, 163, 0.55);
+            border-radius: 18px;
+            overflow-y: auto;
+            box-shadow: 0 18px 40px rgba(0,0,0,0.35);
+            transition: width 0.3s ease;
+        }
+
+        .panel[data-open="false"] {
+            width: 64px;
+        }
+
+        .panel[data-open="false"] .panel__title,
+        .panel[data-open="false"] .panel__body {
+            display: none;
+        }
+
+        .panel__header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 12px 12px 10px 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            position: sticky;
+            top: 0;
+            background: rgba(15, 15, 26, 0.95);
+        }
+
+        .panel__title {
+            font-weight: 800;
+            letter-spacing: 0.3px;
+            font-size: 16px;
+        }
+
+        .icon-btn {
+            appearance: none;
+            border: 1px solid rgba(255,255,255,0.12);
+            background: rgba(44, 62, 80, 0.7);
+            color: #fff;
+            width: 34px;
+            height: 34px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        .icon-btn:hover {
+            border-color: rgba(78, 204, 163, 0.7);
+        }
+
+        .panel__body {
+            padding: 12px 12px 14px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .label {
+            font-size: 12px;
+            color: rgba(255,255,255,0.75);
+            padding: 0 2px;
+        }
+
+        .select {
+            flex: 1;
+            min-width: 120px;
+            padding: 8px 10px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.14);
+            background: rgba(22, 33, 62, 0.65);
+            color: #fff;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .select:focus {
+            border-color: rgba(78, 204, 163, 0.75);
+        }
+
+        .input {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.14);
+            background: rgba(22, 33, 62, 0.65);
+            color: #fff;
+            outline: none;
+        }
+
+        .input::placeholder {
+            color: rgba(255,255,255,0.55);
+        }
+
+        .input:focus {
+            border-color: rgba(78, 204, 163, 0.75);
+        }
+
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .chip {
+            border: 1px solid rgba(255,255,255,0.14);
+            background: rgba(44, 62, 80, 0.55);
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .chip:hover {
+            border-color: rgba(78, 204, 163, 0.55);
+        }
+
+        .chip[aria-selected="true"] {
+            border-color: rgba(78, 204, 163, 0.85);
+            background: rgba(78, 204, 163, 0.18);
+        }
+
+        .chip--danger {
+            border-color: rgba(233, 69, 96, 0.55);
+            background: rgba(233, 69, 96, 0.18);
+        }
+
+        .furniture-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            overflow-y: auto;
+            max-height: 280px;
+            padding-right: 4px;
+        }
+
+        .furniture-item {
+            display: grid;
+            grid-template-columns: 38px 1fr auto;
+            gap: 10px;
+            align-items: center;
+            padding: 8px;
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.10);
+            background: rgba(35, 41, 49, 0.55);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .furniture-item:hover {
+            border-color: rgba(78, 204, 163, 0.55);
+            transform: translateX(5px);
+        }
+
+        .furniture-emoji {
+            font-size: 22px;
+            text-align: center;
+        }
+
+        .furniture-name {
+            font-size: 13px;
+            font-weight: 700;
+            line-height: 1.1;
+        }
+
+        .furniture-meta {
+            font-size: 11px;
+            color: rgba(255,255,255,0.7);
+        }
+
+        .rooms-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .room-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 10px;
+            background: rgba(35, 41, 49, 0.55);
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        .room-item.active {
+            border: 1px solid #4ecca3;
+            background: rgba(78, 204, 163, 0.2);
+        }
+
+        .room-item:hover {
+            background: rgba(78, 204, 163, 0.3);
+        }
+
+        .room-select-btn, .room-delete-btn {
+            padding: 4px 8px;
+            font-size: 11px;
+            border-radius: 8px;
+            cursor: pointer;
+            background: rgba(78,204,163,0.2);
+            border: 1px solid #4ecca3;
+            color: white;
+            margin-left: 5px;
+        }
+
+        .room-delete-btn {
+            border-color: #e94560;
+            color: #e94560;
+        }
+
+        .dev-controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            gap: 10px;
+        }
+
+        .dev-controls button {
+            background: rgba(0,0,0,0.6);
+            border: 1px solid #4ecca3;
+            padding: 5px 10px;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        #editor-error {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: #e94560;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            z-index: 10000;
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .panel {
+                left: 10px;
+                top: 10px;
+                width: calc(100% - 20px);
+                max-width: 360px;
+                max-height: calc(100% - 20px);
+            }
+            .furniture-list {
+                max-height: 200px;
+            }
+            .dev-controls {
+                display: none;
+            }
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            image-rendering: crisp-edges;
         }
     </style>
 </head>
@@ -59,99 +387,192 @@
     <a href="/" class="back-to-menu">
         ← Назад в меню
     </a>
-    <div class="dev-controls">
-        <button id="debug-outline-btn" type="button">Debug outline</button>
-        <button id="toggle-panel-btn" type="button">Скрыть панель</button>
-    </div>
+
     <div id="game-container">
         <div id="game"></div>
-        <div id="ui-root" style="display: block; pointer-events: auto; z-index: 200;" aria-live="polite">
-            <aside id="furniture-panel" class="panel panel--left" data-open="true">
+        <div id="ui-root">
+            <aside id="furniture-panel" class="panel" data-open="true">
                 <div class="panel__header">
-                    <div class="panel__title">Мебель</div>
-                    <button id="furniture-toggle" class="icon-btn" type="button" aria-label="Свернуть панель">⟨</button>
+                    <div class="panel__title">🪑 Мебель</div>
+                    <button id="furniture-toggle" class="icon-btn" type="button">⟨</button>
                 </div>
                 <div class="panel__body">
-                    <div class="row row--wrap">
-                        <button id="snap-toggle" class="chip" type="button" aria-pressed="false" title="Привязка к сетке (G)">Сетка: выкл</button>
-                        <button id="delete-selected" class="chip chip--danger" type="button" title="Удалить выбранный предмет (DEL)">Удалить</button>
-                    </div>
-                    <div class="row row--wrap">
-                        <label class="label">Комната</label>
-                        <select id="room-select" class="select"></select>
-                        <button id="room-new" class="chip" type="button">＋</button>
-                    </div>
-                    <div class="row row--wrap">
-                        <label class="label">Фон</label>
-                        <select id="bg-select" class="select"></select>
-                    </div>
+                    <!-- Инструменты -->
                     <div class="row">
-                        <input id="furniture-search" class="input" type="search" placeholder="Поиск мебели…" />
+                        <button id="snap-toggle" class="chip" type="button">📐 Сетка: выкл</button>
+                        <button id="delete-selected" class="chip chip--danger" type="button">🗑 Удалить</button>
+                        <button id="lock-selected" class="chip" type="button">🔒 Закрепить</button>
+                        <button id="unlock-selected" class="chip" type="button">🔓 Разблок.</button>
                     </div>
-                    <div id="furniture-categories" class="chips" role="tablist" aria-label="Категории мебели"></div>
-                    <div id="furniture-list" class="furniture-list" role="list"></div>
+                    
+                    <!-- Комнаты -->
+                    <div class="row">
+                        <label class="label">🏠 Комнаты</label>
+                    </div>
+                    <div id="rooms-list" class="rooms-list"></div>
+                    <div class="row">
+                        <button id="new-room-btn" class="chip" style="width:100%;">➕ Новая комната</button>
+                    </div>
+                    
+                    <!-- Фон -->
+                    <div class="row">
+                        <label class="label">🎨 Фон</label>
+                        <select id="bg-select" class="select"></select>
+                        <button id="upload-bg-btn" class="chip">📷 Своё</button>
+                    </div>
+                    
+                    <!-- Поиск -->
+                    <div class="row">
+                        <input id="furniture-search" class="input" type="search" placeholder="🔍 Поиск мебели..." />
+                    </div>
+                    
+                    <!-- Категории -->
+                    <div id="furniture-categories" class="chips" role="tablist">
+                        <button class="chip" data-category="all" aria-selected="true">📦 Все</button>
+                        <button class="chip" data-category="base">🧱 Стены</button>
+                        <button class="chip" data-category="bathroom">🚿 Ванная</button>
+                        <button class="chip" data-category="bedroom">🛏 Спальня</button>
+                        <button class="chip" data-category="kitchen">🍳 Кухня</button>
+                        <button class="chip" data-category="livingroom">🛋 Гостиная</button>
+                        <button class="chip" data-category="decor">🎨 Декор</button>
+                        <button class="chip" data-category="electronics">📱 Электроника</button>
+                    </div>
+                    
+                    <!-- Список мебели -->
+                    <div id="furniture-list" class="furniture-list">
+                        <div style="text-align:center;padding:20px;">📦 Загрузка...</div>
+                    </div>
+                    
+                    <!-- Подсказки -->
+                    <div class="row" style="justify-content:center; font-size:10px; color:#666;">
+                        🖱 Клик → разместить | 🗑 Delete | 🔄 Q/E поворот
+                    </div>
+                    <div class="row" style="justify-content:center; font-size:10px; color:#666;">
+                        🖱 Колёсико масштаб | 📌 Ctrl+клик слой | 📄 PageUp/PageDown | 🔒 L/U закрепить
+                    </div>
                 </div>
             </aside>
         </div>
     </div>
-    <div id="editor-error" style="display:none;position:fixed;inset:0;background:#1a1a2e;color:#fff;z-index:3000;align-items:center;justify-content:center;flex-direction:column;gap:12px;">
-        <div>Не удалось загрузить редактор комнаты.</div>
-        <button onclick="window.location.href='/'" style="padding:10px 18px;border-radius:24px;border:1px solid #4ecca3;background:#2c3e50;color:#fff;cursor:pointer;">Вернуться в меню</button>
+
+    <div class="dev-controls">
+        <button id="debug-outline-btn">🐛 Debug</button>
+        <button id="toggle-panel-btn">📁 Скрыть панель</button>
     </div>
+
+    <div id="editor-error">
+        ❌ Ошибка загрузки редактора комнаты<br>
+        Проверьте консоль (F12)
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
     <script type="module" src="/src/game.js"></script>
+    
     <script>
-        window.addEventListener('error', () => {
-            const el = document.getElementById('editor-error');
-            if (el) el.style.display = 'flex';
-        });
-
         document.addEventListener('DOMContentLoaded', () => {
-            const gameContainer = document.getElementById('game-container');
-            const gameElem = document.getElementById('game');
-            const panel = document.querySelector('.panel');
+            const panel = document.getElementById('furniture-panel');
+            const toggleBtn = document.getElementById('furniture-toggle');
+            const togglePanelBtn = document.getElementById('toggle-panel-btn');
             const debugBtn = document.getElementById('debug-outline-btn');
-            const toggleBtn = document.getElementById('toggle-panel-btn');
-
-            const addShowerBtn = document.createElement('button');
-            addShowerBtn.id = 'add-shower-btn';
-            addShowerBtn.type = 'button';
-            addShowerBtn.textContent = 'Добавить душ (shower)';
-            addShowerBtn.style.marginLeft = '10px';
-            addShowerBtn.style.padding = '6px 10px';
-            addShowerBtn.style.borderRadius = '8px';
-            addShowerBtn.style.border = '1px solid #4ecca3';
-            addShowerBtn.style.background = 'rgba(0,0,0,0.4)';
-            addShowerBtn.style.color = '#fff';
-
-            const devControls = document.querySelector('.dev-controls');
-            if (devControls) devControls.appendChild(addShowerBtn);
-
-            if (debugBtn && gameContainer) {
-                debugBtn.addEventListener('click', () => {
-                    gameContainer.classList.toggle('debug-outline');
-                    gameElem.classList.toggle('debug-overlay');
-                });
+            const snapToggle = document.getElementById('snap-toggle');
+            const deleteBtn = document.getElementById('delete-selected');
+            const lockBtn = document.getElementById('lock-selected');
+            const unlockBtn = document.getElementById('unlock-selected');
+            const newRoomBtn = document.getElementById('new-room-btn');
+            const bgSelect = document.getElementById('bg-select');
+            const uploadBgBtn = document.getElementById('upload-bg-btn');
+            
+            let snapEnabled = false;
+            
+            if (toggleBtn) {
+                toggleBtn.onclick = () => {
+                    const isOpen = panel.getAttribute('data-open') === 'true';
+                    panel.setAttribute('data-open', isOpen ? 'false' : 'true');
+                    toggleBtn.textContent = isOpen ? '⟩' : '⟨';
+                };
             }
-
-            if (addShowerBtn) {
-                addShowerBtn.addEventListener('click', () => {
-                    const scene = window.getEditorScene?.();
-                    if (scene) {
-                        scene.debugPlaceItem('shower', 'NE');
-                    } else {
-                        console.warn('EditorScene не найдена');
-                    }
-                });
-            }
-
-            if (toggleBtn && panel) {
-                toggleBtn.addEventListener('click', () => {
+            
+            if (togglePanelBtn) {
+                togglePanelBtn.onclick = () => {
                     const hidden = panel.style.display === 'none';
                     panel.style.display = hidden ? 'block' : 'none';
-                    toggleBtn.textContent = hidden ? 'Скрыть панель' : 'Показать панель';
-                });
+                    togglePanelBtn.textContent = hidden ? '📂 Показать панель' : '📁 Скрыть панель';
+                };
+            }
+            
+            if (debugBtn) {
+                debugBtn.onclick = () => {
+                    document.getElementById('game-container').classList.toggle('debug-outline');
+                };
+            }
+            
+            if (snapToggle) {
+                snapToggle.onclick = () => {
+                    snapEnabled = !snapEnabled;
+                    snapToggle.textContent = snapEnabled ? '📐 Сетка: вкл' : '📐 Сетка: выкл';
+                    const scene = window.getEditorScene?.();
+                    if (scene?.toggleSnap) scene.toggleSnap(snapEnabled);
+                };
+            }
+            
+            if (deleteBtn) {
+                deleteBtn.onclick = () => {
+                    const scene = window.getEditorScene?.();
+                    if (scene?.deleteSelected) scene.deleteSelected();
+                };
+            }
+            
+            if (lockBtn) {
+                lockBtn.onclick = () => {
+                    const scene = window.getEditorScene?.();
+                    if (scene?.lockSelected) scene.lockSelected();
+                };
+            }
+            
+            if (unlockBtn) {
+                unlockBtn.onclick = () => {
+                    const scene = window.getEditorScene?.();
+                    if (scene?.unlockSelected) scene.unlockSelected();
+                };
+            }
+            
+            if (newRoomBtn) {
+                newRoomBtn.onclick = () => {
+                    const scene = window.getEditorScene?.();
+                    if (scene?.createNewRoom) scene.createNewRoom();
+                };
+            }
+            
+            if (bgSelect) {
+                bgSelect.onchange = () => {
+                    const scene = window.getEditorScene?.();
+                    if (scene?.changeBackground) scene.changeBackground(bgSelect.value);
+                };
+            }
+            
+            if (uploadBgBtn) {
+                uploadBgBtn.onclick = () => {
+                    const scene = window.getEditorScene?.();
+                    if (scene?.uploadBackground) scene.uploadBackground();
+                };
             }
         });
+        
+        window.addEventListener('error', (e) => {
+            console.error('Global error:', e.error);
+            const errorDiv = document.getElementById('editor-error');
+            if (errorDiv) {
+                errorDiv.style.display = 'flex';
+                errorDiv.innerHTML = `❌ Ошибка: ${e.message}<br>Проверьте консоль (F12)`;
+            }
+        });
+        
+        window.getEditorScene = () => {
+            if (window.homespaceGame?.scene) {
+                return window.homespaceGame.scene.getScene('EditorScene');
+            }
+            return null;
+        };
     </script>
 </body>
 </html>
