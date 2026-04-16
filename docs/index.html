@@ -408,8 +408,9 @@
                 <div class="form-group">
                     <label>Кто вы?</label>
                     <div class="role-buttons">
+                        <div class="role-btn active" data-role="user">Обычный пользователь</div>
                         <div class="role-btn" data-role="parent">Родитель</div>
-                        <div class="role-btn active" data-role="child">Ребёнок</div>
+                        <div class="role-btn" data-role="child">Ребёнок</div>
                     </div>
                 </div>
                 <div class="form-group">
@@ -488,7 +489,7 @@
     <script>
         const API_URL = 'http://localhost:3001/api';
         let currentUser = null;
-        let selectedRole = 'child';
+        let selectedRole = 'user';
         let selectedAvatar = '';
         let selectedFamilyAction = 'none';
         let familyCodeToJoin = '';
@@ -534,12 +535,17 @@
         function updateMenuUI() {
             if (currentUser) {
                 document.getElementById('menu-user-info').innerHTML = `${currentUser.name} | Бонусы: ${(currentUser.bonuses || 0)} 💰`;
-                const familyCode = currentUser.familyInviteCode || currentUser.familyCode || '—';
-                document.getElementById('family-code-display').textContent = familyCode;
-                if (familyCode !== '—') {
-                    document.getElementById('copy-family-code').style.display = 'inline-block';
+                
+                // Показываем код семьи ТОЛЬКО если пользователь в семье
+                if (currentUser.familyId) {
+                    const familyCode = currentUser.familyInviteCode || currentUser.familyCode || '—';
+                    document.getElementById('family-code-display').textContent = familyCode;
+                    document.getElementById('family-code-info').style.display = 'block';
+                    if (familyCode !== '—') {
+                        document.getElementById('copy-family-code').style.display = 'inline-block';
+                    }
                 } else {
-                    document.getElementById('copy-family-code').style.display = 'none';
+                    document.getElementById('family-code-info').style.display = 'none';
                 }
             }
         }
@@ -572,63 +578,85 @@
             }
         }
 
-        async function register() {
-            const name = document.getElementById('reg-name').value.trim();
-            const email = document.getElementById('reg-email').value.trim();
-            const password = document.getElementById('reg-password').value;
-            if (!name || !email || !password) {
-                showMessage('register-message', 'Заполните все поля');
-                return;
-            }
-            if (password.length < 3) {
-                showMessage('register-message', 'Пароль должен быть минимум 3 символа');
-                return;
-            }
+async function register() {
+    const name = document.getElementById('reg-name').value.trim();
+    const email = document.getElementById('reg-email').value.trim();
+    const password = document.getElementById('reg-password').value;
+    if (!name || !email || !password) {
+        showMessage('register-message', 'Заполните все поля');
+        return;
+    }
+    if (password.length < 3) {
+        showMessage('register-message', 'Пароль должен быть минимум 3 символа');
+        return;
+    }
+    
+    // Проверка для роли "user" - только без семьи
+    if (selectedRole === 'user' && selectedFamilyAction !== 'none') {
+        showMessage('register-message', 'Обычный пользователь может регистрироваться только без семьи');
+        return;
+    }
+    
+    // Проверка: родитель или ребенок НЕ МОГУТ регистрироваться без семьи
+    if ((selectedRole === 'parent' || selectedRole === 'child') && selectedFamilyAction === 'none') {
+        showMessage('register-message', 'Родитель или ребенок могут зарегистрироваться только с семьей (создать или присоединиться)');
+        return;
+    }
+    
+    // Для ребенка - нельзя создать семью (только присоединиться)
+    if (selectedRole === 'child' && selectedFamilyAction === 'create') {
+        showMessage('register-message', 'Ребенок может только присоединиться к семье, не создавать');
+        return;
+    }
+    
+    // Для родителя - можно и создать, и присоединиться (никаких ограничений!)
+    // Для родителя НЕТ дополнительных проверок
+    
+    try {
+        const response = await fetch(`${API_URL}/auth/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name, email, password,
+                role: selectedRole,
+                avatar: selectedAvatar || undefined,
+                familyAction: selectedFamilyAction,
+                familyCode: familyCodeToJoin
+            })
+        });
+        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(data.error || 'Ошибка регистрации');
+        }
+        saveUser(data.user, data.token);
+        if (selectedAvatar && selectedAvatar.startsWith('data:image/')) {
             try {
-                const response = await fetch(`${API_URL}/auth/register`, {
+                const upRes = await fetch(`${API_URL}/users/avatar`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        name, email, password,
-                        role: selectedRole,
-                        avatar: selectedAvatar || undefined,
-                        familyAction: selectedFamilyAction,
-                        familyCode: familyCodeToJoin
-                    })
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${data.token}`
+                    },
+                    body: JSON.stringify({ imageData: selectedAvatar })
                 });
-                const data = await response.json();
-                if (!response.ok) {
-                    throw new Error(data.error || 'Ошибка регистрации');
+                if (upRes.ok) {
+                    const upData = await upRes.json();
+                    data.user.avatar = upData.avatar;
+                    saveUser(data.user, data.token);
                 }
-                saveUser(data.user, data.token);
-                if (selectedAvatar && selectedAvatar.startsWith('data:image/')) {
-                    try {
-                        const upRes = await fetch(`${API_URL}/users/avatar`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${data.token}`
-                            },
-                            body: JSON.stringify({ imageData: selectedAvatar })
-                        });
-                        if (upRes.ok) {
-                            const upData = await upRes.json();
-                            data.user.avatar = upData.avatar;
-                            saveUser(data.user, data.token);
-                        }
-                    } catch {
-                        // ignore upload errors during registration
-                    }
-                }
-                showMessage('register-message', 'Регистрация успешна!', false);
-                setTimeout(() => {
-                    updateMenuUI();
-                    showScreen('menu-screen');
-                }, 500);
-            } catch (error) {
-                showMessage('register-message', error.message);
+            } catch {
+                // ignore upload errors during registration
             }
         }
+        showMessage('register-message', 'Регистрация успешна!', false);
+        setTimeout(() => {
+            updateMenuUI();
+            showScreen('menu-screen');
+        }, 500);
+    } catch (error) {
+        showMessage('register-message', error.message);
+    }
+}
 
         function logout() {
             localStorage.removeItem('homespace_currentUser');

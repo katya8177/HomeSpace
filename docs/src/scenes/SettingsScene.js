@@ -217,8 +217,8 @@ export class SettingsScene extends Phaser.Scene {
         this.add.text(200, y, 'Роль:', { fontSize: '20px', fill: '#cccccc' })
     );
     
-    const roleIcon = this.currentUser.role === 'parent' ? '👑' : '🧒';
-    const roleText = this.currentUser.role === 'parent' ? 'Родитель' : 'Ребёнок';
+    const roleIcon = this.currentUser.role === 'parent' ? '👑' : this.currentUser.role === 'user' ? '👤' : '🧒';
+    const roleText = this.currentUser.role === 'parent' ? 'Родитель' : this.currentUser.role === 'user' ? 'Обычный пользователь' : 'Ребёнок';
     this.settingsContainer.add(
         this.add.text(350, y, `${roleIcon} ${roleText}`, { fontSize: '20px', fill: '#ffffff' })
     );

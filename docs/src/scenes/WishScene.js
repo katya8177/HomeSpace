@@ -572,10 +572,10 @@ export class WishScene extends Phaser.Scene {
         try {
             const result = await api.createWish(wishData);
             
-            this.showNotification(
-                this.isAdmin ? '✨ Желание создано!' : '✨ Желание отправлено на одобрение!',
-                '#4ecca3'
-            );
+            const message = result?.status === 'approved'
+                ? '✨ Желание создано!'
+                : '✨ Желание отправлено на одобрение!';
+            this.showNotification(message, '#4ecca3');
             
             this.mode = 'shop';
             this.loadWishes();

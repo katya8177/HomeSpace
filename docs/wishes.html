@@ -497,9 +497,6 @@
 </head>
 <body>
     <div style="display: flex; gap: 10px; position: fixed; top: 20px; left: 20px; z-index: 100;">
-        <button class="back-btn" id="close-btn" style="background: rgba(233, 69, 96, 0.8); border-color: #e94560; position: relative; top: 0; left: 0;">
-            ✕ Закрыть
-        </button>
         <button class="back-btn" id="menu-btn" onclick="window.location.href='/'">
             ← Назад в меню
         </button>
@@ -614,68 +611,68 @@
             await loadWishes();
         }
 
-        async function loadCurrentUser() {
-            const saved = localStorage.getItem('homespace_currentUser');
-            if (saved) {
-                try {
-                    currentUser = JSON.parse(saved);
-                    token = localStorage.getItem('homespace_token');
-                    
-                    document.getElementById('user-name').textContent = currentUser.name || 'Пользователь';
-                    document.getElementById('user-avatar').innerHTML = getAvatarHtml(currentUser.avatar, currentUser.name);
-                    document.getElementById('user-bonuses').textContent = currentUser.bonuses || 0;
-                    
-                    const roleText = currentUser.role === 'parent' ? 'Родитель' : 'Ребёнок';
-                    document.getElementById('user-role').textContent = roleText;
-                    
-                    // Показываем вкладку для админа
-                    if (currentUser.role === 'parent' || currentUser.role === 'admin') {
-                        const adminTab = document.createElement('button');
-                        adminTab.className = 'tab-btn';
-                        adminTab.dataset.tab = 'pending';
-                        adminTab.textContent = '⏳ На одобрении';
-                        document.getElementById('admin-tab-container').appendChild(adminTab);
-                        
-                        adminTab.addEventListener('click', () => {
-                            setActiveTab('pending');
-                            renderContent();
-                        });
-                    }
-                } catch (e) {
-                    console.error('Ошибка загрузки пользователя:', e);
-                }
-            }
-        }
-
-        async function loadWishes() {
-            try {
-                let url = `${API_URL}/wishes?`;
-                if (currentTab === 'shop') {
-                    url += 'status=approved';
-                } else if (currentTab === 'pending') {
-                    url += 'status=pending';
-                } else if (currentTab === 'history') {
-                    url += 'status=purchased';
-                }
+async function loadCurrentUser() {
+    const saved = localStorage.getItem('homespace_currentUser');
+    if (saved) {
+        try {
+            currentUser = JSON.parse(saved);
+            token = localStorage.getItem('homespace_token');
+            
+            document.getElementById('user-name').textContent = currentUser.name || 'Пользователь';
+            document.getElementById('user-avatar').innerHTML = getAvatarHtml(currentUser.avatar, currentUser.name);
+            document.getElementById('user-bonuses').textContent = currentUser.bonuses || 0;
+            
+            // Правильное отображение роли
+            let roleText = '';
+            if (currentUser.role === 'parent') roleText = 'Родитель';
+            else if (currentUser.role === 'user') roleText = 'Обычный пользователь';
+            else roleText = 'Ребёнок';
+            document.getElementById('user-role').textContent = roleText;
+            
+            // Вкладка "На одобрении" ТОЛЬКО для родителя, у которого есть семья
+            if (currentUser.role === 'parent' && currentUser.familyId) {
+                const adminTab = document.createElement('button');
+                adminTab.className = 'tab-btn';
+                adminTab.dataset.tab = 'pending';
+                adminTab.textContent = '⏳ На одобрении';
+                document.getElementById('admin-tab-container').appendChild(adminTab);
                 
-                const response = await fetch(url, {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                adminTab.addEventListener('click', () => {
+                    setActiveTab('pending');
+                    loadWishes();
+                    renderContent();
                 });
-                
-                if (!response.ok) throw new Error('Ошибка загрузки');
-                
-                wishes = await response.json();
-                renderContent();
-            } catch (error) {
-                console.error('Ошибка загрузки желаний:', error);
-                document.getElementById('content-container').innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">❌</div>
-                        <div>Ошибка загрузки желаний</div>
-                    </div>
-                `;
             }
+        } catch (e) {
+            console.error('Ошибка загрузки пользователя:', e);
         }
+    }
+}
+
+async function loadWishes() {
+    try {
+        let url = `${API_URL}/wishes?`;
+        if (currentTab === 'shop') {
+            url += 'status=approved';
+        } else if (currentTab === 'pending') {
+            url += 'status=pending';
+        } else if (currentTab === 'history') {
+            url += 'status=purchased';
+        }
+        
+        const response = await fetch(url, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (!response.ok) throw new Error('Ошибка загрузки');
+        
+        wishes = await response.json();
+        renderContent();
+    } catch (error) {
+        console.error('Ошибка загрузки желаний:', error);
+        // ...
+    }
+}
 
         function renderContent() {
             const container = document.getElementById('content-container');
@@ -894,7 +891,7 @@
                     localStorage.setItem('homespace_wish_extras', JSON.stringify(localWishExtras));
                 }
                 
-                alert(currentUser?.role === 'parent' ? '✨ Желание создано!' : '✨ Желание отправлено на одобрение!');
+                alert(currentUser?.role === 'parent' || currentUser?.role === 'user' ? '✨ Желание создано!' : '✨ Желание отправлено на одобрение!');
                 setActiveTab('shop');
                 await loadWishes();
             } catch (error) {
@@ -988,6 +985,7 @@
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
                     setActiveTab(btn.dataset.tab);
+                    loadWishes();  // <--- ДОБАВИТЬ ЭТУ СТРОКУ
                     renderContent();
                 });
             });

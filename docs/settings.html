@@ -568,7 +568,7 @@
             }
         }
 
-        function renderContent() {
+        async function renderContent() {
             const container = document.getElementById('content-container');
             
             if (currentTab === 'profile') {
@@ -576,7 +576,7 @@
             } else if (currentTab === 'family') {
                 renderFamily(container);
             } else if (currentTab === 'stats') {
-                renderStats(container);
+                await renderStats(container);
             }
         }
 
@@ -606,7 +606,7 @@
                     <div class="settings-row">
                         <div class="settings-label">Роль</div>
                         <div class="settings-value">
-                            <span>${currentUser?.role === 'parent' ? 'Родитель' : 'Ребёнок'}</span>
+                            <span>${currentUser?.role === 'parent' ? 'Родитель' : currentUser?.role === 'user' ? 'Обычный пользователь' : 'Ребёнок'}</span>
                         </div>
                     </div>
                     
@@ -719,56 +719,104 @@
             });
         }
 
-        function renderStats(container) {
-            // Получаем задания из localStorage для статистики
-            const tasks = JSON.parse(localStorage.getItem('homespace_tasks_sync') || '{}');
-            const userTasks = tasks.tasks?.filter(t => t.assigned_to === currentUser?.id) || [];
-            const completedTasks = userTasks.filter(t => t.status === 'completed');
-            const totalBonuses = completedTasks.reduce((sum, t) => sum + (t.bonus || 0), 0);
-            
-            container.innerHTML = `
-                <div class="settings-card">
-                    <div class="settings-title">Моя статистика</div>
-                    
-                    <div class="stat-item">
-                        <span class="stat-label">Всего заданий</span>
-                        <span class="stat-value">${userTasks.length}</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Выполнено заданий</span>
-                        <span class="stat-value">${completedTasks.length}</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">В ожидании</span>
-                        <span class="stat-value">${userTasks.length - completedTasks.length}</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Заработано бонусов</span>
-                        <span class="stat-value">${totalBonuses}</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Текущий баланс</span>
-                        <span class="stat-value">${currentUser?.bonuses || 0}</span>
-                    </div>
-                </div>
+async function renderStats(container) {
+    // Показываем загрузку
+    container.innerHTML = `
+        <div class="settings-card">
+            <div class="settings-title">Моя статистика</div>
+            <div style="text-align: center; padding: 30px;">Загрузка статистики...</div>
+        </div>
+    `;
+    
+    try {
+        // Загружаем задания с сервера
+        const response = await fetch(`${API_URL}/tasks?`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (!response.ok) throw new Error('Ошибка загрузки');
+        
+        const allTasks = await response.json();
+        
+        // Задания, назначенные текущему пользователю
+        const userTasks = allTasks.filter(t => t.assigned_to === currentUser?.id);
+        const completedTasks = userTasks.filter(t => t.status === 'completed');
+        const totalBonuses = completedTasks.reduce((sum, t) => sum + (t.bonus || 0), 0);
+        
+        // Загружаем желания
+        const wishesResponse = await fetch(`${API_URL}/wishes?`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const allWishes = await wishesResponse.json();
+        const userWishes = allWishes.filter(w => w.created_by === currentUser?.id);
+        const purchasedWishes = userWishes.filter(w => w.status === 'purchased');
+        
+        container.innerHTML = `
+            <div class="settings-card">
+                <div class="settings-title">📊 Моя статистика</div>
                 
-                <div class="settings-card">
-                    <div class="settings-title">Информация об аккаунте</div>
-                    <div class="stat-item">
-                        <span class="stat-label">ID пользователя</span>
-                        <span class="stat-value" style="font-size: 11px;">${currentUser?.id || '—'}</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Email</span>
-                        <span class="stat-value">${escapeHtml(currentUser?.email || '—')}</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Дата регистрации</span>
-                        <span class="stat-value">${currentUser?.created_at ? new Date(currentUser.created_at).toLocaleDateString() : '—'}</span>
-                    </div>
+                <div class="stat-item">
+                    <span class="stat-label">📋 Всего заданий</span>
+                    <span class="stat-value">${userTasks.length}</span>
                 </div>
-            `;
-        }
+                <div class="stat-item">
+                    <span class="stat-label">✅ Выполнено заданий</span>
+                    <span class="stat-value">${completedTasks.length}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">⏳ В ожидании</span>
+                    <span class="stat-value">${userTasks.length - completedTasks.length}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">💰 Заработано бонусов</span>
+                    <span class="stat-value">${totalBonuses}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">💎 Текущий баланс</span>
+                    <span class="stat-value">${currentUser?.bonuses || 0}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">🎁 Создано желаний</span>
+                    <span class="stat-value">${userWishes.length}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">🎉 Исполнено желаний</span>
+                    <span class="stat-value">${purchasedWishes.length}</span>
+                </div>
+            </div>
+            
+            <div class="settings-card">
+                <div class="settings-title">ℹ️ Информация об аккаунте</div>
+                <div class="stat-item">
+                    <span class="stat-label">ID пользователя</span>
+                    <span class="stat-value" style="font-size: 11px;">${currentUser?.id || '—'}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Email</span>
+                    <span class="stat-value">${escapeHtml(currentUser?.email || '—')}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Роль</span>
+                    <span class="stat-value">${currentUser?.role === 'parent' ? 'Родитель' : 'Ребёнок'}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Дата регистрации</span>
+                    <span class="stat-value">${currentUser?.created_at ? new Date(currentUser.created_at).toLocaleDateString() : '—'}</span>
+                </div>
+            </div>
+        `;
+    } catch (error) {
+        console.error('Ошибка загрузки статистики:', error);
+        container.innerHTML = `
+            <div class="settings-card">
+                <div class="settings-title">Моя статистика</div>
+                <div style="text-align: center; padding: 30px; color: #e94560;">
+                    ❌ Ошибка загрузки статистики
+                </div>
+            </div>
+        `;
+    }
+}
 
         async function onAvatarUpload(e) {
             try {

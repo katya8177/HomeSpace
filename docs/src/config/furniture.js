@@ -149,7 +149,7 @@ export const furnitureData = {
         name: 'Шкафчик с ящиками',
         category: 'bathroom',
         folder: 'bathroomCabinetDrawer',
-        rotations: ['NW', 'SE', 'SW'], // 3 ракурса
+        rotations: ['NW', 'SE', 'SW'],
         size: [1, 1]
     },
     bathroomMirror: {
@@ -559,7 +559,7 @@ export const furnitureData = {
         rotations: ['NE', 'NW', 'SE', 'SW'],
         size: [1, 1]
     },
-    hoodLarge_2: {
+    hoodModern: {
         name: 'Современная вытяжка',
         category: 'kitchen',
         folder: 'hoodLarge_2',
@@ -987,6 +987,71 @@ export const furnitureData = {
         folder: 'sideTableDrawers',
         rotations: ['NE', 'NW', 'SE', 'SW'],
         size: [1, 1]
+    },
+
+    // ============ ГОТОВЫЕ КОРПУСА КОМНАТ (rooms) ============
+    roomKitchen: {
+        name: 'Кухонный гарнитур',
+        category: 'rooms',
+        folder: 'roomKitchen',
+        rotations: ['NE'],
+        size: [4, 2]
+    },
+    roomKitchen2: {
+        name: 'Кухонный гарнитур 2',
+        category: 'rooms',
+        folder: 'roomKitchen',
+        rotations: ['NE'],
+        size: [4, 2]
+    },
+    roomBathroom: {
+        name: 'Ванная комната',
+        category: 'rooms',
+        folder: 'roomBathroom',
+        rotations: ['NE'],
+        size: [3, 2]
+    },
+    roomBedroom: {
+        name: 'Спальня',
+        category: 'rooms',
+        folder: 'roomBedroom',
+        rotations: ['NE'],
+        size: [4, 3]
+    },
+    roomLivingroom: {
+        name: 'Гостиная',
+        category: 'rooms',
+        folder: 'roomLivingroom',
+        rotations: ['NE'],
+        size: [5, 3]
+    },
+    roomLivingroom2: {
+        name: 'Гостиная 2',
+        category: 'rooms',
+        folder: 'roomLivingroom',
+        rotations: ['NE'],
+        size: [5, 3]
+    },
+    roomOffice: {
+        name: 'Кабинет',
+        category: 'rooms',
+        folder: 'roomOffice',
+        rotations: ['NE'],
+        size: [4, 3]
+    },
+    roomKids: {
+        name: 'Детская',
+        category: 'rooms',
+        folder: 'roomKids',
+        rotations: ['NE'],
+        size: [4, 3]
+    },
+    roomKids2: {
+        name: 'Детская 2',
+        category: 'rooms',
+        folder: 'roomKids',
+        rotations: ['NE'],
+        size: [4, 3]
     }
 };
 
@@ -998,7 +1063,8 @@ export const paths = {
     decor: 'decor',
     electronics: 'electronics',
     kitchen: 'kitchen',
-    livingroom: 'livingroom'
+    livingroom: 'livingroom',
+    rooms: 'rooms'
 };
 
 // Получить все предметы категории

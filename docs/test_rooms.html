@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест загрузки изображений комнат</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .room-test { margin: 20px 0; padding: 10px; border: 1px solid #ccc; }
+        img { max-width: 200px; max-height: 200px; border: 1px solid #000; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>Тест загрузки изображений комнат</h1>
+
+    <div id="results"></div>
+
+    <script>
+        const rooms = [
+            'roomKitchen',
+            'roomBathroom',
+            'roomBedroom',
+            'roomLivingroom',
+            'roomOffice',
+            'roomKids'
+        ];
+
+        const resultsDiv = document.getElementById('results');
+
+        rooms.forEach(room => {
+            const div = document.createElement('div');
+            div.className = 'room-test';
+
+            const img = document.createElement('img');
+            img.src = `assets/furniture/rooms/${room}/${room}_NE.png`;
+            img.alt = room;
+
+            img.onload = () => {
+                div.innerHTML = `<h3 class="success">✅ ${room}: загружено</h3>`;
+                div.appendChild(img);
+            };
+
+            img.onerror = () => {
+                div.innerHTML = `<h3 class="error">❌ ${room}: ошибка загрузки</h3>
+                <p>Путь: assets/furniture/rooms/${room}/${room}_NE.png</p>`;
+            };
+
+            resultsDiv.appendChild(div);
+        });
+    </script>
+</body>
+</html></content>
+<parameter name="filePath">c:\Users\1\HomeSpace-1\docs\test_rooms.html

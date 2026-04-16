@@ -6,6 +6,7 @@
     <title>HomeSpace - Семейный чат</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
+        /* Стили — без изменений (оставлены как у вас) */
         * {
             margin: 0;
             padding: 0;
@@ -20,7 +21,6 @@
             position: relative;
         }
 
-        /* Анимированный фон */
         body::before {
             content: '';
             position: absolute;
@@ -44,7 +44,6 @@
             50% { opacity: 0.6; transform: scale(1.1); }
         }
 
-        /* Кнопка назад */
         .back-btn {
             position: fixed;
             top: 20px;
@@ -71,7 +70,6 @@
             transform: translateX(-3px);
         }
 
-        /* Основной контейнер чата */
         .chat-app {
             display: flex;
             height: 100vh;
@@ -79,7 +77,6 @@
             z-index: 10;
         }
 
-        /* Боковая панель */
         .chat-sidebar {
             width: 300px;
             background: rgba(15, 15, 26, 0.95);
@@ -91,7 +88,7 @@
         }
 
         .sidebar-header {
-            padding: 24px 20px;
+            padding: 60px 20px 24px 20px;  /* верхний отступ увеличен до 60px */
             border-bottom: 1px solid rgba(78, 204, 163, 0.2);
         }
 
@@ -108,7 +105,6 @@
             margin-top: 5px;
         }
 
-        /* Информация о пользователе */
         .user-info {
             padding: 20px;
             background: rgba(78, 204, 163, 0.1);
@@ -147,7 +143,6 @@
             margin-top: 2px;
         }
 
-        /* Список участников */
         .users-list {
             flex: 1;
             overflow-y: auto;
@@ -214,7 +209,6 @@
             box-shadow: none;
         }
 
-        /* Основная область чата */
         .chat-main {
             flex: 1;
             display: flex;
@@ -222,14 +216,15 @@
             background: rgba(26, 26, 46, 0.7);
             backdrop-filter: blur(5px);
         }
-
+        
         .chat-header {
             padding: 15px 25px;
             background: rgba(0, 0, 0, 0.3);
             border-bottom: 1px solid rgba(78, 204, 163, 0.2);
             display: flex;
-            justify-content: space-between;
+            justify-content: center;   /* ← меняем space-between на center */
             align-items: center;
+            position: relative;        /* чтобы кнопка обновления осталась справа */
         }
 
         .chat-title {
@@ -246,6 +241,10 @@
         }
 
         .refresh-btn {
+            position: absolute;
+            right: 25px;
+            top: 50%;
+            transform: translateY(-50%);
             background: rgba(78, 204, 163, 0.2);
             border: none;
             border-radius: 50%;
@@ -262,7 +261,6 @@
             transform: rotate(90deg);
         }
 
-        /* Область сообщений */
         .messages-area {
             flex: 1;
             overflow-y: auto;
@@ -353,7 +351,6 @@
             margin-bottom: 15px;
         }
 
-        /* Панель ввода */
         .chat-input-area {
             padding: 15px 20px;
             background: rgba(0, 0, 0, 0.3);
@@ -406,7 +403,6 @@
             box-shadow: 0 4px 15px rgba(78, 204, 163, 0.4);
         }
 
-        /* Мобильная адаптация */
         @media (max-width: 768px) {
             .chat-sidebar {
                 position: fixed;
@@ -416,15 +412,12 @@
                 z-index: 1000;
                 transition: left 0.3s ease;
             }
-
             .chat-sidebar.open {
                 left: 0;
             }
-
             .message {
                 max-width: 85%;
             }
-
             .back-btn {
                 top: 10px;
                 left: 10px;
@@ -433,31 +426,26 @@
             }
         }
 
-        /* Скроллбар */
         ::-webkit-scrollbar {
             width: 6px;
         }
-
         ::-webkit-scrollbar-track {
             background: rgba(255, 255, 255, 0.1);
             border-radius: 3px;
         }
-
         ::-webkit-scrollbar-thumb {
             background: #4ecca3;
             border-radius: 3px;
         }
-
         ::-webkit-scrollbar-thumb:hover {
             background: #ffd700;
         }
     </style>
+    <!-- Socket.IO клиент -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 </head>
 <body>
     <div style="display: flex; gap: 10px; position: fixed; top: 20px; left: 20px; z-index: 100;">
-        <button class="back-btn" id="close-btn" style="background: rgba(233, 69, 96, 0.8); border-color: #e94560;">
-            ✕ Закрыть
-        </button>
         <button class="back-btn" onclick="window.location.href='/'">
             ← Назад в меню
         </button>
@@ -485,7 +473,6 @@
             <div class="chat-header">
                 <div class="chat-title" id="chat-title">
                     <span class="chat-title-icon">Чат</span>
-                    <span>Семейный чат</span>
                 </div>
                 <button class="refresh-btn" id="refresh-btn" title="Обновить">⟳</button>
             </div>
@@ -512,11 +499,13 @@
         let currentChat = { type: 'family', userId: null, userName: null };
         let messages = [];
         let users = [];
-        let refreshInterval = null;
         let sidebarOpen = false;
         let unreadCount = 0;
         let isTabFlashing = false;
         const baseTitle = document.title;
+
+        // WebSocket
+        let socket = null;
 
         function closeWebView() {
             if (window.parent && window.parent !== window) {
@@ -525,39 +514,66 @@
                 window.location.href = '/';
             }
         }
-// Адаптация к размеру окна в WebView
-    function handleResize() {
-        // Если мы внутри iframe, сообщаем родителю о готовности
-        if (window.parent && window.parent !== window) {
-            // Сообщаем, что страница загружена
-            window.parent.postMessage('ready', '*');
+
+        function handleResize() {
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage('ready', '*');
+            }
+            const container = document.querySelector('.container');
+            if (container && window.innerWidth < 768) {
+                container.style.padding = '15px';
+            }
         }
         
-        // Адаптируем контейнер под размер iframe
-        const container = document.querySelector('.container');
-        if (container && window.innerWidth < 768) {
-            container.style.padding = '15px';
+        window.addEventListener('message', (event) => {
+            if (event.data && event.data.type === 'resize') {
+                document.body.style.margin = '0';
+                document.body.style.padding = '0';
+            }
+        });
+        
+        window.addEventListener('load', handleResize);
+        window.addEventListener('resize', handleResize);
+        handleResize();
+
+        // ========== WebSocket подключение ==========
+        function connectSocket() {
+            if (!currentUser?.familyId) return;
+            socket = io('http://localhost:3001', {
+                withCredentials: true
+            });
+
+            socket.on('connect', () => {
+                console.log('WebSocket подключён');
+                socket.emit('join-family', {
+                    familyId: currentUser.familyId,
+                    userId: currentUser.id,
+                    userName: currentUser.name,
+                    userAvatar: currentUser.avatar,
+                    token: token
+                });
+            });
+
+            socket.on('new-message', (message) => {
+                // Добавляем новое сообщение и перерисовываем
+                messages.push(message);
+                renderMessages();
+                if (message.user_id !== currentUser.id) {
+                    unreadCount++;
+                    updateUnreadIndicator();
+                    flashTab();
+                }
+            });
+
+            socket.on('disconnect', () => {
+                console.log('WebSocket отключён');
+            });
         }
-    }
-    
-    // Слушаем сообщения от родителя
-    window.addEventListener('message', (event) => {
-        if (event.data && event.data.type === 'resize') {
-            // Обновляем размеры при необходимости
-            document.body.style.margin = '0';
-            document.body.style.padding = '0';
-        }
-    });
-    
-    // Запускаем при загрузке
-    window.addEventListener('load', handleResize);
-    window.addEventListener('resize', handleResize);
-    handleResize();
-        // Инициализация
+
+        // ========== Старые функции (с изменениями) ==========
         async function init() {
             await loadCurrentUser();
             if (!token || !currentUser) {
-                // Если нет пользователя, но мы в WebView, закрываем
                 if (window.parent !== window) {
                     closeWebView();
                 } else {
@@ -566,16 +582,16 @@
                 return;
             }
             
-            // Настраиваем кнопку закрытия
             const closeBtn = document.getElementById('close-btn');
-            if (closeBtn) {
-                closeBtn.onclick = closeWebView;
-            }
+            if (closeBtn) closeBtn.onclick = closeWebView;
+            
+            // Подключаем WebSocket
+            connectSocket();
             
             await loadUsers();
-            await loadMessages();
+            await loadMessages();    // загружаем историю один раз
             setupEventListeners();
-            startAutoRefresh();
+            // startAutoRefresh();   // УДАЛЯЕМ — больше не нужно
             setupMobileMenu();
         }
 
@@ -585,43 +601,29 @@
                 try {
                     currentUser = JSON.parse(saved);
                     token = localStorage.getItem('homespace_token');
-                    
-                    const userNameEl = document.getElementById('user-name');
-                    const userAvatarEl = document.getElementById('user-avatar');
-                    const userRoleEl = document.getElementById('user-role');
-                    
-                    if (userNameEl) userNameEl.textContent = currentUser.name || 'Пользователь';
-                    if (userAvatarEl) userAvatarEl.innerHTML = getAvatarHtml(currentUser.avatar, currentUser.name);
-                    
+                    document.getElementById('user-name').textContent = currentUser.name || 'Пользователь';
+                    document.getElementById('user-avatar').innerHTML = getAvatarHtml(currentUser.avatar, currentUser.name);
                     const roleText = currentUser.role === 'parent' ? 'Родитель' : 'Ребёнок';
-                    if (userRoleEl) userRoleEl.textContent = roleText;
+                    document.getElementById('user-role').textContent = roleText;
                 } catch (e) {
-                    console.error('Ошибка загрузки пользователя:', e);
+                    console.error(e);
                 }
             }
         }
 
         async function loadUsers() {
-            if (!currentUser?.familyId) {
-                console.log('Нет familyId');
-                return;
-            }
-            
+            if (!currentUser?.familyId) return;
             try {
                 const response = await fetch(`${API_URL}/families/${currentUser.familyId}/members`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                
                 if (!response.ok) throw new Error('Ошибка загрузки');
-                
                 users = await response.json();
                 renderUsers();
             } catch (error) {
-                console.error('Ошибка загрузки участников:', error);
+                console.error(error);
                 const usersList = document.getElementById('users-list');
-                if (usersList) {
-                    usersList.innerHTML = '<div style="text-align:center;padding:20px;color:#e94560;">Ошибка загрузки</div>';
-                }
+                if (usersList) usersList.innerHTML = '<div style="text-align:center;padding:20px;color:#e94560;">Ошибка загрузки</div>';
             }
         }
 
@@ -632,7 +634,7 @@
             const familyBtn = document.createElement('div');
             familyBtn.className = `user-item ${currentChat.type === 'family' ? 'active' : ''}`;
             familyBtn.innerHTML = `
-                    <div class="user-item-avatar"><span class="avatar-initials">CH</span></div>
+                <div class="user-item-avatar"><span class="avatar-initials">CH</span></div>
                 <div class="user-item-info">
                     <div class="user-item-name">Семейный чат</div>
                     <div class="user-item-role">Общий чат семьи</div>
@@ -640,16 +642,13 @@
                 <div class="online-indicator"></div>
             `;
             familyBtn.onclick = () => switchToFamilyChat();
-            
             container.innerHTML = '';
             container.appendChild(familyBtn);
             
             users.forEach(user => {
                 if (user.id === currentUser?.id) return;
-                
                 const isActive = currentChat.type === 'private' && currentChat.userId === user.id;
                 const isOnline = user.last_login && (new Date() - new Date(user.last_login)) < 5 * 60 * 1000;
-                
                 const userDiv = document.createElement('div');
                 userDiv.className = `user-item ${isActive ? 'active' : ''}`;
                 userDiv.innerHTML = `
@@ -667,46 +666,36 @@
 
         async function loadMessages() {
             if (!currentUser?.familyId) return;
-            
             try {
                 let url = `${API_URL}/chat?`;
-                
                 if (currentChat.type === 'private' && currentChat.userId) {
                     url += `type=private&withUserId=${currentChat.userId}`;
                 } else {
                     url += `type=family`;
                 }
-                
                 const response = await fetch(url, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                
                 if (!response.ok) throw new Error('Ошибка загрузки');
-                
                 messages = await response.json();
                 renderMessages();
             } catch (error) {
-                console.error('Ошибка загрузки сообщений:', error);
+                console.error(error);
             }
         }
 
         function renderMessages() {
             const area = document.getElementById('messages-area');
             if (!area) return;
-            
             if (!messages || messages.length === 0) {
-                area.innerHTML = `
-                    <div class="empty-messages">
-                        <div class="empty-messages-icon">Чат</div>
-                        <div>Нет сообщений</div>
-                        <div style="font-size:12px; margin-top:8px;">Напишите первое сообщение!</div>
-                    </div>
-                `;
+                area.innerHTML = `<div class="empty-messages">
+                    <div class="empty-messages-icon">Чат</div>
+                    <div>Нет сообщений</div>
+                    <div style="font-size:12px; margin-top:8px;">Напишите первое сообщение!</div>
+                </div>`;
                 return;
             }
-            
             area.innerHTML = '';
-            
             let lastDateLabel = '';
             messages.forEach(msg => {
                 const dateLabel = formatMessageDate(new Date(msg.created_at));
@@ -722,12 +711,9 @@
                 }
                 const isOwn = msg.user_id === currentUser?.id;
                 const isBot = msg.type === 'bot';
-                
                 const messageDiv = document.createElement('div');
                 messageDiv.className = `message ${isOwn ? 'own' : ''}`;
-                
                 const time = new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                
                 messageDiv.innerHTML = `
                     <div class="message-avatar">${isOwn ? getAvatarHtml(currentUser?.avatar, currentUser?.name) : getAvatarHtml(msg.user_avatar, msg.user_name)}</div>
                     <div class="message-content">
@@ -736,80 +722,67 @@
                         <div class="message-time">${time}</div>
                     </div>
                 `;
-                
                 area.appendChild(messageDiv);
             });
-            
             area.scrollTop = area.scrollHeight;
         }
 
+        // Новая отправка через WebSocket
         async function sendMessage() {
             const input = document.getElementById('message-input');
             if (!input) return;
-            
             const message = input.value.trim();
             if (!message) return;
             
             input.value = '';
             input.style.height = 'auto';
             
-            try {
-                const body = {
+            if (socket && socket.connected) {
+                socket.emit('send-message', {
+                    familyId: currentUser.familyId,
+                    userId: currentUser.id,
                     message: message,
-                    type: currentChat.type
-                };
-                
-                if (currentChat.type === 'private' && currentChat.userId) {
-                    body.recipientId = currentChat.userId;
-                }
-                
-                const response = await fetch(`${API_URL}/chat`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify(body)
+                    type: currentChat.type,
+                    recipientId: currentChat.type === 'private' ? currentChat.userId : null
                 });
-                
-                if (!response.ok) throw new Error('Ошибка отправки');
-                
-                await loadMessages();
-            } catch (error) {
-                console.error('Ошибка отправки:', error);
-                alert('Не удалось отправить сообщение');
-                input.value = message;
+            } else {
+                // fallback на старый POST (на случай, если сокет не готов)
+                try {
+                    const body = { message, type: currentChat.type };
+                    if (currentChat.type === 'private' && currentChat.userId) body.recipientId = currentChat.userId;
+                    const response = await fetch(`${API_URL}/chat`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify(body)
+                    });
+                    if (!response.ok) throw new Error();
+                    await loadMessages();
+                } catch (error) {
+                    console.error('Ошибка отправки (fallback):', error);
+                    alert('Не удалось отправить сообщение');
+                    input.value = message;
+                }
             }
         }
 
         function switchToFamilyChat() {
             currentChat = { type: 'family', userId: null, userName: null };
-            const chatTitle = document.getElementById('chat-title');
-            if (chatTitle) {
-                chatTitle.innerHTML = '<span class="chat-title-icon">Чат</span><span>Семейный чат</span>';
-            }
+            document.getElementById('chat-title').innerHTML = '<span class="chat-title-icon">Чат</span><span>Семейный чат</span>';
             renderUsers();
             loadMessages();
-            
             if (window.innerWidth <= 768) {
-                const sidebar = document.getElementById('chat-sidebar');
-                if (sidebar) sidebar.classList.remove('open');
+                document.getElementById('chat-sidebar').classList.remove('open');
                 sidebarOpen = false;
             }
         }
 
         function switchToPrivateChat(user) {
             currentChat = { type: 'private', userId: user.id, userName: user.name };
-            const chatTitle = document.getElementById('chat-title');
-            if (chatTitle) {
-                chatTitle.innerHTML = `<span class="chat-title-icon">Чат</span><span>Чат с ${escapeHtml(user.name)}</span>`;
-            }
+            document.getElementById('chat-title').innerHTML = `<span class="chat-title-icon">Чат</span><span>Чат с ${escapeHtml(user.name)}</span>`;
             renderUsers();
             loadMessages();
-            
             if (window.innerWidth <= 768) {
-                const sidebar = document.getElementById('chat-sidebar');
-                if (sidebar) sidebar.classList.remove('open');
+                document.getElementById('chat-sidebar').classList.remove('open');
                 sidebarOpen = false;
             }
         }
@@ -818,10 +791,8 @@
             const sendBtn = document.getElementById('send-btn');
             const refreshBtn = document.getElementById('refresh-btn');
             const input = document.getElementById('message-input');
-            
             if (sendBtn) sendBtn.onclick = sendMessage;
             if (refreshBtn) refreshBtn.onclick = () => loadMessages();
-            
             if (input) {
                 input.addEventListener('keypress', (e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
@@ -829,7 +800,6 @@
                         sendMessage();
                     }
                 });
-                
                 input.addEventListener('input', function() {
                     this.style.height = 'auto';
                     this.style.height = Math.min(this.scrollHeight, 100) + 'px';
@@ -837,27 +807,11 @@
             }
         }
 
-        function startAutoRefresh() {
-            if (refreshInterval) clearInterval(refreshInterval);
-            let prevLastId = messages[messages.length - 1]?.id || null;
-            refreshInterval = setInterval(() => {
-                loadMessages().then(() => {
-                    const latest = messages[messages.length - 1];
-                    const latestId = latest?.id || null;
-                    if (latestId && prevLastId && latestId !== prevLastId && latest?.user_id !== currentUser?.id) {
-                        unreadCount += 1;
-                        updateUnreadIndicator();
-                        flashTab();
-                    }
-                    prevLastId = latestId || prevLastId;
-                });
-            }, 5000);
-        }
+        // startAutoRefresh удалён – больше не нужен
 
         function setupMobileMenu() {
             const sidebar = document.getElementById('chat-sidebar');
             const header = document.querySelector('.chat-header');
-            
             if (window.innerWidth <= 768 && header && sidebar) {
                 header.style.cursor = 'pointer';
                 header.addEventListener('click', (e) => {
@@ -900,7 +854,7 @@
             let count = 0;
             const interval = setInterval(() => {
                 document.title = count % 2 === 0 ? 'Новое сообщение' : baseTitle;
-                count += 1;
+                count++;
                 if (count > 6) {
                     clearInterval(interval);
                     document.title = baseTitle;

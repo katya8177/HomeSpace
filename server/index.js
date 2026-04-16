@@ -1,4 +1,3 @@
-// server/index.js
 import express from 'express';
 import cors from 'cors';
 import bcrypt from 'bcrypt';
@@ -8,21 +7,50 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { query, testConnection, pool } from './db.js';
+import nodemailer from 'nodemailer';
+import dns from 'dns';
+dns.setDefaultResultOrder('ipv4first');
+import http from 'http';
+import { Server as SocketServer } from 'socket.io';
 
 dotenv.config();
+
+// ========== НАСТРОЙКА ПОЧТЫ (Gmail SMTP) ==========
+const emailTransporter = nodemailer.createTransport({
+    host: '173.194.222.109',
+    port: 587,
+    secure: false,
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+    },
+    tls: {
+        rejectUnauthorized: false
+    },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000
+});
+
+emailTransporter.verify((error, success) => {
+    if (error) {
+        console.error('❌ Ошибка подключения к Gmail:', error.message);
+    } else {
+        console.log('✅ Почтовый сервер готов, отправитель:', process.env.EMAIL_USER);
+    }
+});
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const uploadsDir = path.join(__dirname, '..', 'docs', 'assets', 'uploads');
-const passwordResetCodes = new Map();
+const resetCodes = new Map();
 
 if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Middleware
 app.use(cors({
     origin: 'http://localhost:3000',
     credentials: true
@@ -34,7 +62,6 @@ app.use('/assets/uploads', express.static(uploadsDir));
 // АУТЕНТИФИКАЦИЯ
 // =====================================================
 
-// Регистрация
 app.post('/api/auth/register', async (req, res) => {
     console.log('📝 Register attempt:', req.body);
     
@@ -43,13 +70,12 @@ app.post('/api/auth/register', async (req, res) => {
             name, 
             email, 
             password, 
-            role = 'child', 
+            role = 'user', 
             avatar = '👤',
             familyAction = 'none',
             familyCode = '' 
         } = req.body;
 
-        // Валидация
         if (!name || !email || !password) {
             return res.status(400).json({ 
                 success: false, 
@@ -70,8 +96,21 @@ app.post('/api/auth/register', async (req, res) => {
                 error: 'Некорректный email' 
             });
         }
+        
+        if ((role === 'parent' || role === 'child') && familyAction === 'none') {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Родитель или ребенок могут зарегистрироваться только с семьей' 
+            });
+        }
 
-        // Проверяем существующего пользователя
+        if (role === 'user' && familyAction !== 'none') {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Обычный пользователь может регистрироваться только без семьи' 
+            });
+        }
+
         const existingUsers = await query(
             'SELECT id FROM users WHERE email = ?',
             [email]
@@ -84,33 +123,26 @@ app.post('/api/auth/register', async (req, res) => {
             });
         }
 
-        // Хешируем пароль
         const passwordHash = await bcrypt.hash(password, 10);
         const userId = generateUUID();
 
-        // Обработка семьи
         let familyId = null;
         let inviteCode = null;
 
         if (familyAction === 'create') {
             inviteCode = generateInviteCode();
-            
-            // Создаём семью
             const familyUUID = generateUUID();
             await query(
                 `INSERT INTO families (id, name, invite_code, created_by) 
                  VALUES (?, ?, ?, ?)`,
                 [familyUUID, `Семья ${name}`, inviteCode, userId]
             );
-            
             familyId = familyUUID;
-            
         } else if (familyAction === 'join' && familyCode) {
             const families = await query(
                 'SELECT id FROM families WHERE invite_code = ?',
                 [familyCode.toUpperCase()]
             );
-            
             if (families.length > 0) {
                 familyId = families[0].id;
             } else {
@@ -121,19 +153,6 @@ app.post('/api/auth/register', async (req, res) => {
             }
         }
         
-        // Если пользователь регистрируется "без семьи", создаём личное пространство (семью)
-        if (familyAction === 'none' && role === 'user') {
-            inviteCode = generateInviteCode();
-            const personalFamilyId = generateUUID();
-            await query(
-                `INSERT INTO families (id, name, invite_code, created_by) 
-                 VALUES (?, ?, ?, ?)`,
-                [personalFamilyId, `Личное пространство ${name}`, inviteCode, userId]
-            );
-            familyId = personalFamilyId;
-        }
-
-        // Создаём пользователя
         await query(
             `INSERT INTO users (
                 id, email, password_hash, name, role, avatar, family_id, bonuses
@@ -141,28 +160,35 @@ app.post('/api/auth/register', async (req, res) => {
             [userId, email, passwordHash, name, role, avatar, familyId, 0]
         );
 
-        // Если создавали семью, обновляем created_by
         if (familyAction === 'create' && familyId) {
             await query(
                 'UPDATE families SET created_by = ? WHERE id = ?',
                 [userId, familyId]
             );
+            await ensureParentCommonRoom({ userId, familyId });
         }
 
-        // Получаем созданного пользователя
+        if (familyAction === 'none' && role === 'user') {
+            await ensurePersonalRoom({ userId, familyId: null, userName: name });
+        } else if (familyAction === 'join' && familyId) {
+            if (role === 'child') {
+                await ensureChildFamilyRooms({ userId, familyId, userName: name });
+            } else if (role === 'parent' || role === 'admin') {
+                await ensureParentCommonRoom({ userId, familyId });
+            }
+        }
+
         const newUser = await query(
-            `SELECT id, email, name, role, avatar, family_id, bonuses, 
-                    created_at
+            `SELECT id, email, name, role, avatar, family_id, bonuses, created_at
              FROM users WHERE id = ?`,
             [userId]
         );
 
-        // Создаём JWT токен - ДОБАВЛЯЕМ name
         const token = jwt.sign(
             { 
                 id: userId, 
                 email, 
-                name: name,  // <-- ДОБАВЛЯЕМ name
+                name: name,
                 role,
                 familyId: familyId 
             },
@@ -170,7 +196,6 @@ app.post('/api/auth/register', async (req, res) => {
             { expiresIn: '30d' }
         );
 
-        // Если есть семья, получаем её код
         let familyInviteCode = null;
         if (familyId) {
             const family = await query(
@@ -180,7 +205,6 @@ app.post('/api/auth/register', async (req, res) => {
             familyInviteCode = family[0]?.invite_code;
         }
 
-        // Отправляем успешный ответ
         res.status(201).json({
             success: true,
             message: 'Регистрация успешна',
@@ -208,7 +232,6 @@ app.post('/api/auth/register', async (req, res) => {
     }
 });
 
-// Вход
 app.post('/api/auth/login', async (req, res) => {
     console.log('🔑 Login attempt:', req.body.email);
     
@@ -222,7 +245,6 @@ app.post('/api/auth/login', async (req, res) => {
             });
         }
 
-        // Ищем пользователя
         const users = await query(
             `SELECT u.*, f.invite_code as family_invite_code 
              FROM users u 
@@ -240,7 +262,6 @@ app.post('/api/auth/login', async (req, res) => {
 
         const user = users[0];
 
-        // Проверяем пароль
         const validPassword = await bcrypt.compare(password, user.password_hash);
         if (!validPassword) {
             return res.status(401).json({ 
@@ -249,18 +270,20 @@ app.post('/api/auth/login', async (req, res) => {
             });
         }
 
-        // Обновляем last_login
         await query(
             'UPDATE users SET last_login = NOW() WHERE id = ?',
             [user.id]
         );
+        
+        if (user.family_id && (user.role === 'parent' || user.role === 'admin')) {
+            await ensureParentCommonRoom({ userId: user.id, familyId: user.family_id });
+        }
 
-        // Создаём токен - ДОБАВЛЯЕМ name
         const token = jwt.sign(
             { 
                 id: user.id, 
                 email: user.email, 
-                name: user.name,  // <-- ДОБАВЛЯЕМ name
+                name: user.name,
                 role: user.role,
                 familyId: user.family_id 
             },
@@ -268,7 +291,6 @@ app.post('/api/auth/login', async (req, res) => {
             { expiresIn: '30d' }
         );
 
-        // Убираем пароль из ответа
         delete user.password_hash;
 
         res.json({
@@ -299,65 +321,6 @@ app.post('/api/auth/login', async (req, res) => {
     }
 });
 
-// Запрос кода восстановления пароля
-app.post('/api/auth/forgot-password', async (req, res) => {
-    try {
-        const { email } = req.body;
-        if (!email) {
-            return res.status(400).json({ error: 'Email обязателен' });
-        }
-
-        const users = await query('SELECT id, email FROM users WHERE email = ?', [email]);
-        if (users.length === 0) {
-            // Не раскрываем факт существования пользователя
-            return res.json({ success: true, message: 'Если email существует, код отправлен' });
-        }
-
-        const code = `${Math.floor(100000 + Math.random() * 900000)}`;
-        passwordResetCodes.set(email.toLowerCase(), {
-            code,
-            expiresAt: Date.now() + 10 * 60 * 1000
-        });
-
-        // В проекте нет настроенного почтового сервиса, поэтому код логируется
-        // и может быть подключен к реальной рассылке без изменений API.
-        console.log(`Password reset code for ${email}: ${code}`);
-
-        return res.json({ success: true, message: 'Код отправлен на email' });
-    } catch (error) {
-        console.error('Ошибка восстановления пароля:', error);
-        return res.status(500).json({ error: 'Ошибка сервера' });
-    }
-});
-
-// Подтверждение кода и смена пароля
-app.post('/api/auth/reset-password', async (req, res) => {
-    try {
-        const { email, code, newPassword } = req.body;
-        if (!email || !code || !newPassword) {
-            return res.status(400).json({ error: 'Недостаточно данных' });
-        }
-        if (newPassword.length < 3) {
-            return res.status(400).json({ error: 'Пароль должен быть минимум 3 символа' });
-        }
-
-        const entry = passwordResetCodes.get(email.toLowerCase());
-        if (!entry || entry.expiresAt < Date.now() || entry.code !== String(code).trim()) {
-            return res.status(400).json({ error: 'Неверный или просроченный код' });
-        }
-
-        const passwordHash = await bcrypt.hash(newPassword, 10);
-        await query('UPDATE users SET password_hash = ? WHERE email = ?', [passwordHash, email]);
-        passwordResetCodes.delete(email.toLowerCase());
-
-        return res.json({ success: true, message: 'Пароль обновлён' });
-    } catch (error) {
-        console.error('Ошибка сброса пароля:', error);
-        return res.status(500).json({ error: 'Ошибка сервера' });
-    }
-});
-
-// Проверка токена
 app.get('/api/auth/verify', async (req, res) => {
     const token = req.headers.authorization?.split(' ')[1];
     
@@ -400,7 +363,6 @@ app.get('/api/auth/verify', async (req, res) => {
 // СЕМЬЯ (FAMILY)
 // =====================================================
 
-// Получить информацию о семье пользователя
 app.get('/api/family', authenticate, async (req, res) => {
     try {
         if (!req.user.familyId) {
@@ -424,7 +386,6 @@ app.get('/api/family', authenticate, async (req, res) => {
     }
 });
 
-// Создать семью
 app.post('/api/family/create', authenticate, async (req, res) => {
     try {
         if (req.user.role !== 'parent' && req.user.role !== 'admin') {
@@ -450,6 +411,8 @@ app.post('/api/family/create', authenticate, async (req, res) => {
             'UPDATE users SET family_id = ? WHERE id = ?',
             [familyId, req.user.id]
         );
+
+        await ensureParentCommonRoom({ userId: req.user.id, familyId });
         
         const newToken = jwt.sign(
             { 
@@ -480,7 +443,6 @@ app.post('/api/family/create', authenticate, async (req, res) => {
     }
 });
 
-// Присоединиться к семье по коду
 app.post('/api/family/join', authenticate, async (req, res) => {
     try {
         const { code } = req.body;
@@ -508,6 +470,16 @@ app.post('/api/family/join', authenticate, async (req, res) => {
             'UPDATE users SET family_id = ? WHERE id = ?',
             [family.id, req.user.id]
         );
+
+        if (req.user.role === 'child') {
+            await ensureChildFamilyRooms({
+                userId: req.user.id,
+                familyId: family.id,
+                userName: req.user.name
+            });
+        } else if (req.user.role === 'parent' || req.user.role === 'admin') {
+            await ensureParentCommonRoom({ userId: req.user.id, familyId: family.id });
+        }
         
         const newToken = jwt.sign(
             { 
@@ -540,10 +512,9 @@ app.post('/api/family/join', authenticate, async (req, res) => {
 // ЗАДАНИЯ (TASKS)
 // =====================================================
 
-// Получить все задания семьи
 app.get('/api/tasks', authenticate, async (req, res) => {
     try {
-        const { status, assignedTo } = req.query;
+        const { status, assignedTo, createdBy, itemKey } = req.query;
         
         let sql = `
             SELECT t.*, 
@@ -555,9 +526,17 @@ app.get('/api/tasks', authenticate, async (req, res) => {
             LEFT JOIN users u ON t.assigned_to = u.id
             LEFT JOIN users creator ON t.created_by = creator.id
             LEFT JOIN furniture_items f ON t.item_key = f.item_key
-            WHERE t.family_id = ?
+            WHERE 1=1
         `;
-        const params = [req.user.familyId];
+        const params = [];
+        
+        if (!req.user.familyId) {
+            sql += ' AND (t.created_by = ? OR t.assigned_to = ?)';
+            params.push(req.user.id, req.user.id);
+        } else {
+            sql += ' AND t.family_id = ?';
+            params.push(req.user.familyId);
+        }
         
         if (status) {
             sql += ' AND t.status = ?';
@@ -567,6 +546,16 @@ app.get('/api/tasks', authenticate, async (req, res) => {
         if (assignedTo) {
             sql += ' AND t.assigned_to = ?';
             params.push(assignedTo);
+        }
+        
+        if (createdBy) {
+            sql += ' AND t.created_by = ?';
+            params.push(createdBy);
+        }
+        
+        if (itemKey) {
+            sql += ' AND t.item_key = ?';
+            params.push(itemKey);
         }
         
         sql += ' ORDER BY t.created_at DESC';
@@ -580,37 +569,40 @@ app.get('/api/tasks', authenticate, async (req, res) => {
     }
 });
 
-// Создать задание
 app.post('/api/tasks', authenticate, async (req, res) => {
     try {
         if (req.user.role === 'child') {
             return res.status(403).json({ error: 'Ребёнок не может создавать задания' });
         }
+        
         const { 
             title, 
             description, 
             bonus, 
             assignedTo, 
             itemKey,
+            itemInstanceId,  // <-- НОВОЕ ПОЛЕ
             dueDate 
         } = req.body;
 
         const taskId = generateUUID();
+        const familyId = req.user.familyId || null;
         
         await query(
             `INSERT INTO tasks (
                 id, family_id, created_by, assigned_to, 
-                title, description, bonus, item_key, due_date
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                title, description, bonus, item_key, item_instance_id, due_date
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 taskId,
-                req.user.familyId,
+                familyId,
                 req.user.id,
                 assignedTo || null,
                 title,
                 description || '',
                 bonus || 10,
                 itemKey || null,
+                itemInstanceId || null,  // <-- СОХРАНЯЕМ
                 dueDate || null
             ]
         );
@@ -650,17 +642,24 @@ app.post('/api/tasks', authenticate, async (req, res) => {
     }
 });
 
-// Выполнить задание
 app.post('/api/tasks/:id/complete', authenticate, async (req, res) => {
     const connection = await pool.getConnection();
     
     try {
         await connection.beginTransaction();
         
-        const [tasks] = await connection.query(
-            'SELECT * FROM tasks WHERE id = ? AND family_id = ?',
-            [req.params.id, req.user.familyId]
-        );
+        let sql = 'SELECT * FROM tasks WHERE id = ?';
+        let params = [req.params.id];
+        
+        if (req.user.familyId) {
+            sql += ' AND family_id = ?';
+            params.push(req.user.familyId);
+        } else {
+            sql += ' AND (created_by = ? OR assigned_to = ?)';
+            params.push(req.user.id, req.user.id);
+        }
+        
+        const [tasks] = await connection.query(sql, params);
         
         if (tasks.length === 0) {
             await connection.rollback();
@@ -672,6 +671,11 @@ app.post('/api/tasks/:id/complete', authenticate, async (req, res) => {
         if (task.status === 'completed') {
             await connection.rollback();
             return res.status(400).json({ error: 'Задание уже выполнено' });
+        }
+        
+        if (task.assigned_to !== req.user.id && task.created_by !== req.user.id) {
+            await connection.rollback();
+            return res.status(403).json({ error: 'Вы не можете выполнить это задание' });
         }
         
         await connection.query(
@@ -708,17 +712,18 @@ app.post('/api/tasks/:id/complete', authenticate, async (req, res) => {
             ]
         );
         
-        await connection.query(
-            'UPDATE users SET bonuses = bonuses + ? WHERE id = ?',
-            [bonusAmount, req.user.id]
-        );
-        
         await connection.commit();
+        
+        const [updatedUsers] = await connection.query(
+            'SELECT bonuses FROM users WHERE id = ?',
+            [req.user.id]
+        );
+        const newBalance = updatedUsers[0]?.bonuses || currentBonuses + bonusAmount;
         
         res.json({ 
             success: true, 
             bonus: bonusAmount,
-            newBalance: currentBonuses + bonusAmount
+            newBalance: newBalance
         });
         
     } catch (error) {
@@ -730,17 +735,24 @@ app.post('/api/tasks/:id/complete', authenticate, async (req, res) => {
     }
 });
 
-// Удалить задание
 app.delete('/api/tasks/:id', authenticate, async (req, res) => {
     try {
+        let sql = 'DELETE FROM tasks WHERE id = ?';
+        let params = [req.params.id];
+        
         if (req.user.role !== 'parent' && req.user.role !== 'admin') {
-            return res.status(403).json({ error: 'Недостаточно прав' });
+            sql += ' AND assigned_to = ? AND status = "completed"';
+            params.push(req.user.id);
+        } else {
+            sql += ' AND family_id = ?';
+            params.push(req.user.familyId);
         }
         
-        await query(
-            'DELETE FROM tasks WHERE id = ? AND family_id = ?',
-            [req.params.id, req.user.familyId]
-        );
+        const result = await query(sql, params);
+        
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Задание не найдено или нет прав для удаления' });
+        }
         
         res.json({ success: true });
         
@@ -754,7 +766,6 @@ app.delete('/api/tasks/:id', authenticate, async (req, res) => {
 // ЖЕЛАНИЯ (WISHES)
 // =====================================================
 
-// Получить все желания семьи
 app.get('/api/wishes', authenticate, async (req, res) => {
     try {
         const { status } = req.query;
@@ -769,9 +780,22 @@ app.get('/api/wishes', authenticate, async (req, res) => {
             LEFT JOIN users u ON w.created_by = u.id
             LEFT JOIN users approver ON w.approved_by = approver.id
             LEFT JOIN users buyer ON w.purchased_by = buyer.id
-            WHERE w.family_id = ?
+            WHERE 1=1
         `;
-        const params = [req.user.familyId];
+        const params = [];
+        
+        if (req.user.familyId) {
+            if (req.user.role === 'parent' || req.user.role === 'admin') {
+                sql += ' AND w.family_id = ?';
+                params.push(req.user.familyId);
+            } else {
+                sql += ' AND w.created_by = ?';
+                params.push(req.user.id);
+            }
+        } else {
+            sql += ' AND w.created_by = ?';
+            params.push(req.user.id);
+        }
         
         if (status) {
             sql += ' AND w.status = ?';
@@ -789,28 +813,49 @@ app.get('/api/wishes', authenticate, async (req, res) => {
     }
 });
 
-// Создать желание
 app.post('/api/wishes', authenticate, async (req, res) => {
     try {
         const { title, description, price, icon, imageUrl } = req.body;
         
         const wishId = generateUUID();
         
+        let status = 'approved';
+        let approvedBy = null;
+        let approvedAt = null;
+        let approvedPrice = null;
+        
+        if (req.user.familyId && req.user.role === 'child') {
+            status = 'pending';
+        } else if (req.user.familyId && (req.user.role === 'parent' || req.user.role === 'admin')) {
+            status = 'approved';
+            approvedBy = req.user.id;
+            approvedAt = new Date();
+            approvedPrice = price || 50;
+        } else if (!req.user.familyId) {
+            status = 'approved';
+            approvedBy = req.user.id;
+            approvedAt = new Date();
+            approvedPrice = price || 50;
+        }
+        
         await query(
             `INSERT INTO wishes (
                 id, family_id, created_by, title, description, 
-                price, icon, image_url, status
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                price, icon, image_url, status, approved_by, approved_at, approved_price
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 wishId,
-                req.user.familyId,
+                req.user.familyId || null,
                 req.user.id,
                 title,
                 description || '',
                 price || 50,
                 icon || '🎁',
                 imageUrl || null,
-                req.user.role === 'parent' ? 'approved' : 'pending'
+                status,
+                approvedBy,
+                approvedAt,
+                approvedPrice
             ]
         );
 
@@ -830,7 +875,6 @@ app.post('/api/wishes', authenticate, async (req, res) => {
     }
 });
 
-// Одобрить желание
 app.post('/api/wishes/:id/approve', authenticate, async (req, res) => {
     try {
         if (req.user.role !== 'parent' && req.user.role !== 'admin') {
@@ -857,7 +901,27 @@ app.post('/api/wishes/:id/approve', authenticate, async (req, res) => {
     }
 });
 
-// Купить желание
+app.post('/api/wishes/:id/reject', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'parent' && req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'Недостаточно прав' });
+        }
+        
+        await query(
+            `UPDATE wishes 
+             SET status = 'rejected'
+             WHERE id = ? AND family_id = ?`,
+            [req.params.id, req.user.familyId]
+        );
+
+        res.json({ success: true });
+        
+    } catch (error) {
+        console.error('Ошибка отклонения желания:', error);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
 app.post('/api/wishes/:id/purchase', authenticate, async (req, res) => {
     const connection = await pool.getConnection();
     
@@ -936,21 +1000,13 @@ app.post('/api/wishes/:id/purchase', authenticate, async (req, res) => {
     }
 });
 
-/// =====================================================
-// ЧАТ (CHAT) - ФИНАЛЬНАЯ РАБОЧАЯ ВЕРСИЯ
+// =====================================================
+// ЧАТ (CHAT)
 // =====================================================
 
-// Получить сообщения чата
 app.get('/api/chat', authenticate, async (req, res) => {
     try {
         const { type, withUserId, limit = 100 } = req.query;
-        
-        console.log('📨 Запрос сообщений:', { 
-            type, 
-            withUserId, 
-            familyId: req.user.familyId,
-            userId: req.user.id 
-        });
         
         if (!req.user.familyId) {
             return res.json([]);
@@ -975,8 +1031,6 @@ app.get('/api/chat', authenticate, async (req, res) => {
         params.push(parseInt(limit));
         
         const messages = await query(sql, params);
-        console.log(`✅ Найдено сообщений: ${messages.length}`);
-        
         res.json(messages);
         
     } catch (error) {
@@ -985,18 +1039,9 @@ app.get('/api/chat', authenticate, async (req, res) => {
     }
 });
 
-// Отправить сообщение - ФИНАЛЬНАЯ ВЕРСИЯ
 app.post('/api/chat', authenticate, async (req, res) => {
     try {
         const { message, type, recipientId } = req.body;
-        
-        console.log('📝 Отправка сообщения:', { 
-            message: message?.substring(0, 50), 
-            type, 
-            recipientId,
-            userId: req.user.id,
-            familyId: req.user.familyId 
-        });
         
         if (!message || message.trim() === '') {
             return res.status(400).json({ error: 'Сообщение не может быть пустым' });
@@ -1010,7 +1055,6 @@ app.post('/api/chat', authenticate, async (req, res) => {
         const messageType = type || 'family';
         const finalRecipientId = (messageType === 'private' && recipientId) ? recipientId : null;
         
-        // Получаем имя пользователя из базы данных, если в токене нет
         let userName = req.user.name;
         let userAvatar = req.user.avatar || '👤';
         
@@ -1022,7 +1066,6 @@ app.post('/api/chat', authenticate, async (req, res) => {
             if (users.length > 0) {
                 userName = users[0].name;
                 userAvatar = users[0].avatar || '👤';
-                console.log('📝 Имя получено из БД:', userName);
             } else {
                 userName = 'Пользователь';
             }
@@ -1045,19 +1088,12 @@ app.post('/api/chat', authenticate, async (req, res) => {
                 0
             ]
         );
-        
-        console.log('✅ Сообщение вставлено, ID:', messageId);
 
         const messages = await query(
             'SELECT * FROM chat_messages WHERE id = ?',
             [messageId]
         );
 
-        if (messages.length === 0) {
-            throw new Error('Не удалось получить сохраненное сообщение');
-        }
-
-        console.log('✅ Сообщение успешно отправлено');
         res.status(201).json(messages[0]);
         
     } catch (error) {
@@ -1065,105 +1101,225 @@ app.post('/api/chat', authenticate, async (req, res) => {
         res.status(500).json({ error: error.message || 'Ошибка сервера' });
     }
 });
+
 // =====================================================
-// КОМНАТА (ROOM)
+// КОМНАТЫ (ROOMS) - ОСНОВНЫЕ API ДЛЯ РЕДАКТОРА
 // =====================================================
 
-// Сохранить комнату
-app.post('/api/rooms', authenticate, async (req, res) => {
+app.get('/api/rooms/my-rooms', authenticate, async (req, res) => {
     try {
-        const { name, data, width, height, gridSize } = req.body;
-        const safeName = (name || 'Моя комната').trim();
-        if (!data || typeof data !== 'object') {
-            return res.status(400).json({ error: 'Некорректные данные комнаты' });
-        }
-        console.log('save room request:', {
-            userId: req.user.id,
-            familyId: req.user.familyId || null,
-            name: safeName,
-            items: Array.isArray(data?.items) ? data.items.length : 0
-        });
-        
-        const existing = await query(
-            'SELECT id FROM rooms WHERE user_id = ? AND name = ?',
-            [req.user.id, safeName]
-        );
-        
-        let roomId;
-        
-        if (existing.length > 0) {
-            roomId = existing[0].id;
-            await query(
-                `UPDATE rooms 
-                 SET data = ?, width = ?, height = ?, grid_size = ?, updated_at = NOW()
-                 WHERE id = ?`,
-                [JSON.stringify(data), width || 20, height || 15, gridSize || 64, roomId]
-            );
-        } else {
-            roomId = generateUUID();
-            await query(
-                `INSERT INTO rooms (
-                    id, user_id, family_id, name, data, width, height, grid_size
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-                [
-                    roomId,
-                    req.user.id,
-                    req.user.familyId || null,
-                    safeName,
-                    JSON.stringify(data),
-                    width || 20,
-                    height || 15,
-                    gridSize || 64
-                ]
-            );
-        }
-
         const rooms = await query(
-            'SELECT * FROM rooms WHERE id = ?',
-            [roomId]
+            `SELECT id, name, background, data, created_at, updated_at
+             FROM rooms
+             WHERE user_id = ?
+             ORDER BY updated_at DESC`,
+            [req.user.id]
         );
-
-        console.log('save room success:', { roomId, name: safeName });
-        res.json(rooms[0]);
         
+        const formattedRooms = rooms.map(room => ({
+            id: room.id,
+            name: room.name,
+            background: room.background || 'bg_default',
+            items: room.data ? (typeof room.data === 'string' ? JSON.parse(room.data).items || [] : room.data.items || []) : [],
+            createdAt: room.created_at,
+            updatedAt: room.updated_at
+        }));
+        
+        res.json(formattedRooms);
     } catch (error) {
-        console.error('Ошибка сохранения комнаты:', error);
+        console.error('Ошибка получения комнат пользователя:', error);
         res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
 
-// Получить комнату
-app.get('/api/rooms/by-name/:name', authenticate, async (req, res) => {
+app.post('/api/rooms/create', authenticate, async (req, res) => {
     try {
+        const { name, background, items } = req.body;
+        
+        if (!name || name.trim() === '') {
+            return res.status(400).json({ error: 'Название комнаты обязательно' });
+        }
+        
+        const roomId = generateUUID();
+        const roomData = {
+            items: items || [],
+            background: background || 'bg_default'
+        };
+        
+        await query(
+            `INSERT INTO rooms (id, user_id, family_id, name, data, background, width, height, grid_size)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [roomId, req.user.id, req.user.familyId || null, name.trim(), JSON.stringify(roomData), background || 'bg_default', 20, 15, 64]
+        );
+        
+        const newRoom = await query('SELECT * FROM rooms WHERE id = ?', [roomId]);
+        
+        res.status(201).json({
+            id: newRoom[0].id,
+            name: newRoom[0].name,
+            background: newRoom[0].background || 'bg_default',
+            items: roomData.items,
+            createdAt: newRoom[0].created_at
+        });
+    } catch (error) {
+        console.error('Ошибка создания комнаты:', error);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+app.get('/api/rooms/:roomId', authenticate, async (req, res) => {
+    try {
+        const { roomId } = req.params;
+        
         const rooms = await query(
-            'SELECT * FROM rooms WHERE user_id = ? AND name = ?',
-            [req.user.id, req.params.name]
+            `SELECT id, user_id, family_id, name, data, background, created_at, updated_at
+             FROM rooms
+             WHERE id = ?`,
+            [roomId]
         );
         
         if (rooms.length === 0) {
             return res.status(404).json({ error: 'Комната не найдена' });
         }
         
-        res.json(rooms[0]);
+        const room = rooms[0];
         
+        const isOwner = room.user_id === req.user.id;
+        const isFamilyMember = room.family_id && room.family_id === req.user.familyId;
+        const isParentViewingChild = req.user.role === 'parent' && room.family_id === req.user.familyId && room.user_id !== req.user.id;
+        
+        if (!isOwner && !isFamilyMember && !isParentViewingChild) {
+            return res.status(403).json({ error: 'Нет доступа к этой комнате' });
+        }
+        
+        const readOnly = (req.user.role === 'parent' && room.user_id !== req.user.id) || 
+                        (room.user_id !== req.user.id && req.user.role !== 'admin');
+        
+        res.json({
+            id: room.id,
+            name: room.name,
+            userId: room.user_id,
+            background: room.background || 'bg_default',
+            items: room.data ? (typeof room.data === 'string' ? JSON.parse(room.data).items || [] : room.data.items || []) : [],
+            readOnly: readOnly,
+            createdAt: room.created_at
+        });
     } catch (error) {
-        console.error('Ошибка загрузки комнаты:', error);
+        console.error('Ошибка получения комнаты:', error);
         res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
 
-app.get('/api/rooms/list', authenticate, async (req, res) => {
+app.get('/api/rooms/child-rooms/:childId', authenticate, async (req, res) => {
     try {
+        if (req.user.role !== 'parent' && req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'Только родители могут просматривать комнаты детей' });
+        }
+        
+        const { childId } = req.params;
+        
+        const childUsers = await query(
+            'SELECT id, family_id FROM users WHERE id = ? AND role = ?',
+            [childId, 'child']
+        );
+        
+        if (childUsers.length === 0) {
+            return res.status(404).json({ error: 'Ребенок не найден' });
+        }
+        
+        const child = childUsers[0];
+        
+        if (child.family_id !== req.user.familyId) {
+            return res.status(403).json({ error: 'Ребенок не из вашей семьи' });
+        }
+        
         const rooms = await query(
-            `SELECT id, name, updated_at, created_at
+            `SELECT id, name, background, data, created_at, updated_at
              FROM rooms
              WHERE user_id = ?
-             ORDER BY updated_at DESC, created_at DESC`,
-            [req.user.id]
+             ORDER BY updated_at DESC`,
+            [childId]
         );
-        res.json(rooms);
+        
+        const formattedRooms = rooms.map(room => ({
+            id: room.id,
+            name: room.name,
+            background: room.background || 'bg_default',
+            items: room.data ? (typeof room.data === 'string' ? JSON.parse(room.data).items || [] : room.data.items || []) : [],
+            createdAt: room.created_at,
+            readOnly: true
+        }));
+        
+        res.json(formattedRooms);
     } catch (error) {
-        console.error('Ошибка списка комнат:', error);
+        console.error('Ошибка получения комнат ребенка:', error);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+app.put('/api/rooms/:roomId', authenticate, async (req, res) => {
+    try {
+        const { roomId } = req.params;
+        const { name, background, items } = req.body;
+        
+        const rooms = await query(
+            'SELECT user_id, family_id FROM rooms WHERE id = ?',
+            [roomId]
+        );
+        
+        if (rooms.length === 0) {
+            return res.status(404).json({ error: 'Комната не найдена' });
+        }
+        
+        const room = rooms[0];
+        const isOwner = room.user_id === req.user.id;
+        const isFamilyAdmin = req.user.role === 'parent' && room.family_id === req.user.familyId;
+        
+        if (!isOwner && !isFamilyAdmin) {
+            return res.status(403).json({ error: 'Нет прав на редактирование' });
+        }
+        
+        const roomData = {
+            items: items || [],
+            background: background || 'bg_default'
+        };
+        
+        await query(
+            `UPDATE rooms 
+             SET name = ?, background = ?, data = ?, updated_at = NOW()
+             WHERE id = ?`,
+            [name || 'Моя комната', background || 'bg_default', JSON.stringify(roomData), roomId]
+        );
+        
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Ошибка обновления комнаты:', error);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+app.delete('/api/rooms/:roomId', authenticate, async (req, res) => {
+    try {
+        const { roomId } = req.params;
+        
+        const rooms = await query(
+            'SELECT user_id FROM rooms WHERE id = ?',
+            [roomId]
+        );
+        
+        if (rooms.length === 0) {
+            return res.status(404).json({ error: 'Комната не найдена' });
+        }
+        
+        if (rooms[0].user_id !== req.user.id) {
+            return res.status(403).json({ error: 'Нет прав на удаление' });
+        }
+        
+        await query('DELETE FROM rooms WHERE id = ?', [roomId]);
+        
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Ошибка удаления комнаты:', error);
         res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
@@ -1172,7 +1328,6 @@ app.get('/api/rooms/list', authenticate, async (req, res) => {
 // ЧЛЕНЫ СЕМЬИ
 // =====================================================
 
-// Получить членов семьи
 app.get('/api/families/:id/members', authenticate, async (req, res) => {
     try {
         const members = await query(
@@ -1196,7 +1351,6 @@ app.get('/api/families/:id/members', authenticate, async (req, res) => {
     }
 });
 
-// Обновление аватара пользователя (фото)
 app.post('/api/users/avatar', authenticate, async (req, res) => {
     try {
         const { imageData } = req.body;
@@ -1246,6 +1400,166 @@ function generateInviteCode() {
     return code;
 }
 
+async function createRoomForUser({ userId, familyId, name, roomType = 'custom', baseData = null }) {
+    const roomId = generateUUID();
+    const roomData = baseData && typeof baseData === 'object'
+        ? { ...baseData, meta: { ...(baseData.meta || {}), roomType } }
+        : { meta: { roomType }, items: [] };
+
+    await query(
+        `INSERT INTO rooms (
+            id, user_id, family_id, name, data, background, width, height, grid_size
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+            roomId,
+            userId,
+            familyId,
+            name,
+            JSON.stringify(roomData),
+            'bg_default',
+            20,
+            15,
+            64
+        ]
+    );
+
+    return roomId;
+}
+
+async function getFamilyCommonRoomData(familyId) {
+    try {
+        const rooms = await query(
+            `SELECT data FROM rooms WHERE family_id = ? AND name = 'Общая комната семьи' LIMIT 1`,
+            [familyId]
+        );
+
+        if (rooms.length > 0) {
+            return JSON.parse(rooms[0].data);
+        }
+    } catch (error) {
+        console.error('Ошибка получения данных общей комнаты:', error);
+    }
+
+    return { meta: { roomType: 'family' }, items: [] };
+}
+
+async function ensureParentCommonRoom({ userId, familyId }) {
+    const existing = await query(
+        'SELECT id FROM rooms WHERE family_id = ? AND name = ?',
+        [familyId, 'Общая комната семьи']
+    );
+    if (existing.length > 0) {
+        return;
+    }
+
+    const roomId = generateUUID();
+    await query(
+        `INSERT INTO rooms (id, user_id, family_id, name, data, background, width, height, grid_size)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [roomId, null, familyId, 'Общая комната семьи', JSON.stringify({ meta: { roomType: 'family' }, items: [] }), 'bg_default', 20, 15, 64]
+    );
+}
+
+async function ensurePersonalRoom({ userId, familyId, userName }) {
+    const roomName = `Личная комната ${userName}`;
+    const existing = await query(
+        'SELECT id FROM rooms WHERE user_id = ? AND name = ?',
+        [userId, roomName]
+    );
+    if (existing.length > 0) {
+        return;
+    }
+
+    await createRoomForUser({
+        userId,
+        familyId,
+        name: roomName,
+        roomType: 'personal',
+        baseData: {
+            meta: { roomType: 'personal' },
+            items: []
+        }
+    });
+}
+
+async function ensureChildFamilyRooms({ userId, familyId, userName }) {
+    // ВРЕМЕННО ОТКЛЮЧАЕМ - ребенок получает только комнату "Моя комната" через createDefaultRoom
+    console.log(`👶 Ребенок ${userName} зарегистрирован. Лишние комнаты НЕ создаются.`);
+    
+    // Создаем только базовую комнату "Моя комната"
+    const existingRoom = await query(
+        'SELECT id FROM rooms WHERE user_id = ? AND name = ?',
+        [userId, 'Моя комната']
+    );
+    
+    if (existingRoom.length === 0) {
+        await createRoomForUser({
+            userId,
+            familyId,
+            name: 'Моя комната',
+            roomType: 'personal',
+            baseData: {
+                meta: { roomType: 'personal' },
+                items: []
+            }
+        });
+    }
+    
+    // СТАРЫЙ КОД - ПОЛНОСТЬЮ ЗАКОММЕНТИРОВАН
+    /*
+    const creativeName = `Творческая комната ${userName}`;
+    const familyViewName = `Просмотр общей комнаты ${userName}`;
+
+    const [creativeExisting, familyExisting] = await Promise.all([
+        query('SELECT id FROM rooms WHERE user_id = ? AND name = ?', [userId, creativeName]),
+        query('SELECT id FROM rooms WHERE user_id = ? AND name = ?', [userId, familyViewName])
+    ]);
+
+    const commonData = await getFamilyCommonRoomData(familyId);
+
+    const creativeData = {
+        ...commonData,
+        meta: {
+            ...(commonData.meta || {}),
+            roomType: 'creative',
+            sharedFrom: 'family',
+            createdFor: userName
+        }
+    };
+
+    const familyData = {
+        ...commonData,
+        meta: {
+            ...(commonData.meta || {}),
+            roomType: 'family_view',
+            sharedFrom: 'family',
+            createdFor: userName,
+            viewOnly: true
+        }
+    };
+
+    if (creativeExisting.length === 0) {
+        await createRoomForUser({
+            userId,
+            familyId,
+            name: creativeName,
+            roomType: 'creative',
+            baseData: creativeData
+        });
+    }
+
+    if (familyExisting.length === 0) {
+        await createRoomForUser({
+            userId,
+            familyId,
+            name: familyViewName,
+            roomType: 'family_view',
+            baseData: familyData
+        });
+    }
+    */
+}
+
 function authenticate(req, res, next) {
     const token = req.headers.authorization?.split(' ')[1];
     
@@ -1263,24 +1577,180 @@ function authenticate(req, res, next) {
 }
 
 // =====================================================
+// ВОССТАНОВЛЕНИЕ ПАРОЛЯ
+// =====================================================
+
+app.post('/api/auth/forgot-password', async (req, res) => {
+    try {
+        const { email } = req.body;
+        
+        if (!email) {
+            return res.status(400).json({ error: 'Email обязателен' });
+        }
+
+        const users = await query(
+            'SELECT id, name FROM users WHERE email = ?',
+            [email.toLowerCase()]
+        );
+        
+        if (users.length === 0) {
+            return res.json({ 
+                success: true, 
+                message: 'Если email зарегистрирован, код отправлен' 
+            });
+        }
+
+        const user = users[0];
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        
+        resetCodes.set(email.toLowerCase(), {
+            userId: user.id,
+            code: code,
+            expiresAt: Date.now() + 10 * 60 * 1000
+        });
+
+        await emailTransporter.sendMail({
+            from: `"HomeSpace" <${process.env.EMAIL_USER}>`,
+            to: email,
+            subject: 'Восстановление пароля HomeSpace',
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px;">
+                    <h1 style="color: #4ecca3;">🏠 HomeSpace</h1>
+                    <h2>Восстановление пароля</h2>
+                    <p>Здравствуйте, ${user.name || 'пользователь'}!</p>
+                    <p>Ваш код для восстановления пароля:</p>
+                    <div style="font-size: 32px; font-weight: bold; padding: 20px; background: #f0f0f0; text-align: center; border-radius: 10px; letter-spacing: 5px;">
+                        ${code}
+                    </div>
+                    <p>Код действителен в течение <strong>10 минут</strong>.</p>
+                    <p>Если вы не запрашивали восстановление пароля, проигнорируйте это письмо.</p>
+                    <hr>
+                    <small>HomeSpace - семейный органайзер</small>
+                </div>
+            `,
+            text: `HomeSpace: Ваш код для восстановления пароля: ${code}. Код действителен 10 минут.`
+        });
+
+        console.log(`✅ Код ${code} отправлен на ${email}`);
+        res.json({ success: true, message: 'Код отправлен на email' });
+
+    } catch (error) {
+        console.error('Ошибка forgot-password:', error);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+app.post('/api/auth/reset-password', async (req, res) => {
+    try {
+        const { email, code, newPassword } = req.body;
+        
+        if (!email || !code || !newPassword) {
+            return res.status(400).json({ error: 'Недостаточно данных' });
+        }
+        
+        if (newPassword.length < 3) {
+            return res.status(400).json({ error: 'Пароль должен быть минимум 3 символа' });
+        }
+
+        const record = resetCodes.get(email.toLowerCase());
+        
+        if (!record) {
+            return res.status(400).json({ error: 'Код не найден. Запросите новый' });
+        }
+        
+        if (record.expiresAt < Date.now()) {
+            resetCodes.delete(email.toLowerCase());
+            return res.status(400).json({ error: 'Код просрочен. Запросите новый' });
+        }
+        
+        if (record.code !== code.trim()) {
+            return res.status(400).json({ error: 'Неверный код' });
+        }
+
+        const passwordHash = await bcrypt.hash(newPassword, 10);
+        
+        await query(
+            'UPDATE users SET password_hash = ? WHERE id = ?',
+            [passwordHash, record.userId]
+        );
+        
+        resetCodes.delete(email.toLowerCase());
+
+        res.json({ success: true, message: 'Пароль успешно изменён' });
+
+    } catch (error) {
+        console.error('Ошибка reset-password:', error);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+// =====================================================
 // ЗАПУСК СЕРВЕРА
 // =====================================================
 
 async function startServer() {
     const dbConnected = await testConnection();
-    
-    if (!dbConnected) {
-        console.log('⚠️ База данных не подключена');
-    }
+    if (!dbConnected) console.log('⚠️ База данных не подключена');
 
-    app.listen(PORT, () => {
+    const server = http.createServer(app);
+    
+    const io = new SocketServer(server, {
+        cors: {
+            origin: 'http://localhost:3000',
+            credentials: true
+        }
+    });
+
+    io.on('connection', (socket) => {
+        console.log('🔌 Новый клиент подключён:', socket.id);
+
+        socket.on('join-family', async (data) => {
+            const { familyId, userId, userName, userAvatar, token } = data;
+            socket.join(`family:${familyId}`);
+            socket.data = { familyId, userId, userName, userAvatar };
+            console.log(`👤 ${userName} (${userId}) присоединился к семье ${familyId}`);
+        });
+
+        socket.on('send-message', async (data) => {
+            const { familyId, message, type, recipientId } = data;
+            const { userId, userName, userAvatar } = socket.data;
+
+            if (!userId || !familyId) return;
+
+            const messageId = generateUUID();
+            const finalRecipientId = (type === 'private' && recipientId) ? recipientId : null;
+
+            try {
+                await query(
+                    `INSERT INTO chat_messages (
+                        id, family_id, user_id, user_name, user_avatar, 
+                        message, type, recipient_id, is_read
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    [messageId, familyId, userId, userName, userAvatar, 
+                     message.trim(), type || 'family', finalRecipientId, 0]
+                );
+
+                const [newMsg] = await query('SELECT * FROM chat_messages WHERE id = ?', [messageId]);
+                io.to(`family:${familyId}`).emit('new-message', newMsg);
+            } catch (err) {
+                console.error('Ошибка сохранения сообщения через сокет:', err);
+            }
+        });
+
+        socket.on('disconnect', () => {
+            console.log('🔌 Клиент отключён:', socket.id);
+        });
+    });
+
+    server.listen(PORT, () => {
         console.log(`🚀 Сервер запущен на http://localhost:${PORT}`);
+        console.log(`📡 WebSocket готов`);
         console.log(`📝 Регистрация: POST /api/auth/register`);
         console.log(`🔑 Вход: POST /api/auth/login`);
         console.log(`✅ Задания: GET/POST /api/tasks`);
         console.log(`✅ Желания: GET/POST /api/wishes`);
         console.log(`✅ Чат: GET/POST /api/chat`);
-        console.log(`✅ Комната: GET/POST /api/rooms`);
+        console.log(`✅ Комнаты: GET/POST/PUT/DELETE /api/rooms`);
     });
 }
 

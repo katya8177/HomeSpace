@@ -1,4 +1,3 @@
-// src/services/api.js
 class ApiService {
     constructor() {
         this.baseUrl = 'http://localhost:3001/api';
@@ -25,9 +24,11 @@ class ApiService {
 
     getCurrentUser() {
         const userStr = localStorage.getItem('homespace_currentUser');
+        console.log('🔍 api.getCurrentUser() ->', userStr ? 'есть данные' : 'null');
         try {
             return userStr ? JSON.parse(userStr) : null;
-        } catch {
+        } catch (error) {
+            console.error('Ошибка парсинга пользователя:', error);
             return null;
         }
     }
@@ -180,19 +181,26 @@ class ApiService {
         }
     }
 
-    async createTask(taskData) {
-        try {
-            const response = await fetch(`${this.baseUrl}/tasks`, {
-                method: 'POST',
-                headers: this.getHeaders(),
-                body: JSON.stringify(taskData)
-            });
-            return await this.handleResponse(response);
-        } catch (error) {
-            console.error('Ошибка создания задания:', error);
-            throw error;
-        }
+async createTask(taskData) {
+    try {
+        const response = await fetch(`${this.baseUrl}/tasks`, {
+            method: 'POST',
+            headers: this.getHeaders(),
+            body: JSON.stringify({
+                title: taskData.title,
+                description: taskData.description,
+                bonus: taskData.bonus,
+                assignedTo: taskData.assignedTo,
+                itemKey: taskData.itemKey,
+                itemInstanceId: taskData.itemInstanceId  // <-- ДОБАВЛЯЕМ
+            })
+        });
+        return await this.handleResponse(response);
+    } catch (error) {
+        console.error('Ошибка создания задания:', error);
+        throw error;
     }
+}
 
     async completeTask(taskId) {
         try {
@@ -349,48 +357,84 @@ class ApiService {
         }
     }
 
-    // ========== КОМНАТА (ROOM) ==========
-    async saveRoom(roomData) {
+    // ========== КОМНАТЫ (ROOMS) ==========
+    async getMyRooms() {
         try {
-            console.log('saveRoom payload:', roomData);
-            const response = await fetch(`${this.baseUrl}/rooms`, {
+            const response = await fetch(`${this.baseUrl}/rooms/my-rooms`, {
+                method: 'GET',
+                headers: this.getHeaders()
+            });
+            return await this.handleResponse(response);
+        } catch (error) {
+            console.error('Ошибка получения комнат:', error);
+            return [];
+        }
+    }
+
+    async createRoom(roomData) {
+        try {
+            const response = await fetch(`${this.baseUrl}/rooms/create`, {
                 method: 'POST',
                 headers: this.getHeaders(),
                 body: JSON.stringify(roomData)
             });
-            const data = await this.handleResponse(response);
-            console.log('saveRoom response:', data);
-            return data;
-        } catch (error) {
-            console.error('Ошибка сохранения комнаты:', error);
-            throw error;
-        }
-    }
-
-    async getRoom(roomName = 'default') {
-        try {
-            const response = await fetch(`${this.baseUrl}/rooms/by-name/${roomName}`, {
-                method: 'GET',
-                headers: this.getHeaders()
-            });
-            if (response.status === 404) return null;
             return await this.handleResponse(response);
         } catch (error) {
-            console.error('Ошибка загрузки комнаты:', error);
+            console.error('Ошибка создания комнаты:', error);
             throw error;
         }
     }
 
-    async getRoomsList() {
+    async getRoomById(roomId) {
         try {
-            const response = await fetch(`${this.baseUrl}/rooms/list`, {
+            const response = await fetch(`${this.baseUrl}/rooms/${roomId}`, {
                 method: 'GET',
                 headers: this.getHeaders()
             });
             return await this.handleResponse(response);
         } catch (error) {
-            console.error('Ошибка загрузки списка комнат:', error);
+            console.error('Ошибка получения комнаты:', error);
+            throw error;
+        }
+    }
+
+    async getChildRooms(childId) {
+        try {
+            const response = await fetch(`${this.baseUrl}/rooms/child-rooms/${childId}`, {
+                method: 'GET',
+                headers: this.getHeaders()
+            });
+            return await this.handleResponse(response);
+        } catch (error) {
+            console.error('Ошибка получения комнат ребенка:', error);
             return [];
+        }
+    }
+
+    async updateRoom(roomId, roomData) {
+        try {
+            const response = await fetch(`${this.baseUrl}/rooms/${roomId}`, {
+                method: 'PUT',
+                headers: this.getHeaders(),
+                body: JSON.stringify(roomData)
+            });
+            return await this.handleResponse(response);
+        } catch (error) {
+            console.error('Ошибка обновления комнаты:', error);
+            throw error;
+        }
+    }
+
+    async deleteRoom(roomId) {
+        try {
+            const response = await fetch(`${this.baseUrl}/rooms/${roomId}`, {
+                method: 'DELETE',
+                headers: this.getHeaders()
+            });
+            return await this.handleResponse(response);
+        } catch (error) {
+            console.error('Ошибка удаления комнаты:', error);
+            throw error;
         }
     }
 
