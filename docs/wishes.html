@@ -93,6 +93,7 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            margin-bottom: 8px;
         }
 
         .header p {
@@ -180,17 +181,20 @@
             color: white;
             font-size: 16px;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
             font-weight: 500;
+        }
+
+        .tab-btn:hover {
+            border-color: rgba(78, 204, 163, 0.7);
+            background: rgba(78, 204, 163, 0.1);
+            transform: translateY(-2px);
         }
 
         .tab-btn.active {
             background: linear-gradient(135deg, #4ecca3, #3ba87f);
             border-color: transparent;
-        }
-
-        .tab-btn:hover {
-            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(78,204,163,0.4);
         }
 
         /* Кнопка создания */
@@ -227,16 +231,31 @@
             backdrop-filter: blur(10px);
             border-radius: 24px;
             padding: 20px;
-            border: 1px solid rgba(78, 204, 163, 0.2);
-            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            background-clip: padding-box;
+            background-image: linear-gradient(rgba(15, 15, 26, 0.9), rgba(15, 15, 26, 0.9)), linear-gradient(135deg, #4ecca3, #ffd700);
+            background-origin: border-box;
+            background-clip: padding-box, border-box;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
             position: relative;
             overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .wish-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: linear-gradient(135deg, rgba(78,204,163,0.1), transparent);
+            pointer-events: none;
+            border-radius: 22px;
         }
 
         .wish-card:hover {
-            transform: translateY(-5px);
-            border-color: rgba(78, 204, 163, 0.5);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transform: translateY(-8px) scale(1.02);
+            border-color: transparent;
+            box-shadow: 0 12px 40px rgba(78,204,163,0.4), 0 0 30px rgba(78,204,163,0.2);
         }
 
         .wish-card.pending {
@@ -332,13 +351,14 @@
             color: white;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 4px 15px rgba(78,204,163,0.3);
         }
 
-        .buy-btn.disabled {
-            background: #666;
-            cursor: not-allowed;
-            opacity: 0.5;
+        .buy-btn:hover:not(.disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(78,204,163,0.5);
+            background: linear-gradient(135deg, #5dd8b1, #4ecca3);
         }
 
         .approve-btn {
@@ -348,6 +368,13 @@
             border-radius: 30px;
             color: #4ecca3;
             cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .approve-btn:hover {
+            background: rgba(78, 204, 163, 0.3);
+            box-shadow: 0 4px 12px rgba(78,204,163,0.3);
+            transform: translateY(-1px);
         }
 
         .reject-btn {
@@ -357,6 +384,13 @@
             border-radius: 30px;
             color: #e94560;
             cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .reject-btn:hover {
+            background: rgba(233, 69, 96, 0.3);
+            box-shadow: 0 4px 12px rgba(233,69,96,0.3);
+            transform: translateY(-1px);
         }
 
         .price-input {
@@ -545,7 +579,26 @@
         </div>
     </div>
 
+    <!-- Кроппер для картинок желаний -->
+    <div class="modal" id="cropper-modal">
+        <div class="modal-content" style="max-width: 440px;">
+            <h3>Обрезка картинки</h3>
+            <div style="display:flex; justify-content:center;">
+                <canvas id="cropper-canvas" width="280" height="280" style="width: 280px; height: 280px; border-radius: 22px; background: rgba(0,0,0,0.25); border: 1px solid rgba(78, 204, 163, 0.25); touch-action: none;"></canvas>
+            </div>
+            <div style="margin-top: 16px;">
+                <label style="display:block; color: rgba(255,255,255,0.7); font-size: 13px; font-weight: 500; margin-bottom: 8px;">Масштаб</label>
+                <input id="cropper-zoom" type="range" min="1" max="3" step="0.01" value="1" style="width: 100%;">
+            </div>
+            <div class="modal-buttons" style="margin-top: 18px;">
+                <button class="modal-cancel" id="cropper-cancel">Отмена</button>
+                <button class="modal-save" id="cropper-apply">Готово</button>
+            </div>
+        </div>
+    </div>
+
     <script>
+        let cropperState = null;
         const API_URL = 'http://localhost:3001/api';
         let token = localStorage.getItem('homespace_token');
         let currentUser = null;
@@ -674,198 +727,293 @@ async function loadWishes() {
     }
 }
 
-        function renderContent() {
-            const container = document.getElementById('content-container');
-            
-            if (currentTab === 'create') {
-                renderCreateForm(container);
-                return;
+function renderContent() {
+    const container = document.getElementById('content-container');
+    
+    if (currentTab === 'create') {
+        renderCreateForm(container);
+        return;
+    }
+    
+    let filteredWishes = [];
+    if (currentTab === 'shop') {
+        filteredWishes = wishes.filter(w => w.status === 'approved' && !w.purchased_by);
+    } else if (currentTab === 'pending') {
+        filteredWishes = wishes.filter(w => w.status === 'pending');
+    } else if (currentTab === 'history') {
+        filteredWishes = wishes.filter(w => w.status === 'purchased');
+    }
+    
+    if (filteredWishes.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">Нет данных</div>
+                <div>
+                    ${currentTab === 'shop' ? 'Нет доступных желаний' : 
+                      currentTab === 'pending' ? 'Нет желаний на одобрении' : 
+                      'История покупок пуста'}
+                </div>
+                ${currentTab === 'shop' ? '<div style="font-size:12px; margin-top:8px;">Создайте новое желание!</div>' : ''}
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = '<div class="wishes-grid" id="wishes-grid"></div>';
+    const grid = document.getElementById('wishes-grid');
+    
+    filteredWishes.forEach(wish => {
+        const canAfford = currentTab === 'shop' && (currentUser?.bonuses || 0) >= (wish.approved_price || wish.price);
+        const isPending = wish.status === 'pending';
+        const isPurchased = wish.status === 'purchased';
+        
+        const card = document.createElement('div');
+        card.className = `wish-card ${isPending ? 'pending' : ''} ${isPurchased ? 'purchased' : ''}`;
+        
+        card.innerHTML = `
+            <div class="wish-icon">${wish.icon || '🎁'}</div>
+            <div class="wish-title">${escapeHtml(wish.title)}</div>
+            ${renderWishImage(wish)}
+            ${wish.description ? `<div class="wish-description">${escapeHtml(wish.description)}</div>` : ''}
+            ${renderWishLink(wish)}
+            <div class="wish-meta">
+                <span class="wish-price">${wish.approved_price || wish.price}💰</span>
+                <span class="wish-creator">${escapeHtml(wish.created_by_name || 'Неизвестно')}</span>
+                <span class="wish-status ${wish.status}">${getStatusText(wish.status)}</span>
+            </div>
+            <div class="wish-actions" id="actions-${wish.id}">
+                ${renderActions(wish, canAfford)}
+            </div>
+            <div class="wish-comments">
+                ${renderComments(wish.id)}
+                <div style="display:flex;gap:8px;">
+                    <input id="comment-${wish.id}" type="text" placeholder="Комментарий..." style="margin:0;">
+                    <button class="approve-btn" id="comment-btn-${wish.id}" style="padding:6px 10px;">Отправить</button>
+                </div>
+            </div>
+        `;
+        
+        grid.appendChild(card);
+        const commentBtn = document.getElementById(`comment-btn-${wish.id}`);
+        if (commentBtn) commentBtn.onclick = () => addComment(wish.id);
+        
+        // === ВАЖНОЕ ИЗМЕНЕНИЕ: обработчики для всех вкладок ===
+        
+        // Кнопка "Купить" (только для shop)
+        if (currentTab === 'shop' && !isPurchased) {
+            const buyBtn = document.getElementById(`buy-${wish.id}`);
+            if (buyBtn && canAfford) {
+                buyBtn.onclick = () => buyWish(wish);
             }
-            
-            let filteredWishes = [];
-            if (currentTab === 'shop') {
-                filteredWishes = wishes.filter(w => w.status === 'approved' && !w.purchased_by);
-            } else if (currentTab === 'pending') {
-                filteredWishes = wishes.filter(w => w.status === 'pending');
-            } else if (currentTab === 'history') {
-                filteredWishes = wishes.filter(w => w.status === 'purchased');
-            }
-            
-            if (filteredWishes.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">Нет данных</div>
-                        <div>
-                            ${currentTab === 'shop' ? 'Нет доступных желаний' : 
-                              currentTab === 'pending' ? 'Нет желаний на одобрении' : 
-                              'История покупок пуста'}
-                        </div>
-                        ${currentTab === 'shop' ? '<div style="font-size:12px; margin-top:8px;">Создайте новое желание!</div>' : ''}
-                    </div>
-                `;
-                return;
-            }
-            
-            container.innerHTML = '<div class="wishes-grid" id="wishes-grid"></div>';
-            const grid = document.getElementById('wishes-grid');
-            
-            filteredWishes.forEach(wish => {
-                const canAfford = currentTab === 'shop' && (currentUser?.bonuses || 0) >= (wish.approved_price || wish.price);
-                const isPending = wish.status === 'pending';
-                const isPurchased = wish.status === 'purchased';
-                
-                const card = document.createElement('div');
-                card.className = `wish-card ${isPending ? 'pending' : ''} ${isPurchased ? 'purchased' : ''}`;
-                
-                card.innerHTML = `
-                    <div class="wish-icon">${wish.icon || '🎁'}</div>
-                    <div class="wish-title">${escapeHtml(wish.title)}</div>
-                    ${renderWishImage(wish)}
-                    ${wish.description ? `<div class="wish-description">${escapeHtml(wish.description)}</div>` : ''}
-                    ${renderWishLink(wish)}
-                    <div class="wish-meta">
-                        <span class="wish-price">${wish.approved_price || wish.price}💰</span>
-                        <span class="wish-creator">${escapeHtml(wish.created_by_name || 'Неизвестно')}</span>
-                        <span class="wish-status ${wish.status}">${getStatusText(wish.status)}</span>
-                    </div>
-                    <div class="wish-actions" id="actions-${wish.id}">
-                        ${renderActions(wish, canAfford)}
-                    </div>
-                    <div class="wish-comments">
-                        ${renderComments(wish.id)}
-                        <div style="display:flex;gap:8px;">
-                            <input id="comment-${wish.id}" type="text" placeholder="Комментарий..." style="margin:0;">
-                            <button class="approve-btn" id="comment-btn-${wish.id}" style="padding:6px 10px;">Отправить</button>
-                        </div>
-                    </div>
-                `;
-                
-                grid.appendChild(card);
-                const commentBtn = document.getElementById(`comment-btn-${wish.id}`);
-                if (commentBtn) commentBtn.onclick = () => addComment(wish.id);
-                
-                // Добавляем обработчики для кнопок
-                if (currentTab === 'shop' && !isPurchased) {
-                    const buyBtn = document.getElementById(`buy-${wish.id}`);
-                    if (buyBtn && canAfford) {
-                        buyBtn.onclick = () => buyWish(wish);
-                    }
-                }
-                
-                if (currentTab === 'pending') {
-                    const approveBtn = document.getElementById(`approve-${wish.id}`);
-                    const rejectBtn = document.getElementById(`reject-${wish.id}`);
-                    const priceInput = document.getElementById(`price-${wish.id}`);
-                    
-                    if (approveBtn) approveBtn.onclick = () => showApproveModal(wish, priceInput?.value);
-                    if (rejectBtn) rejectBtn.onclick = () => rejectWish(wish);
-                }
-            });
         }
+        
+        // Кнопка "Удалить" для ВСЕХ вкладок (shop, history)
+        const deleteBtn = document.getElementById(`delete-${wish.id}`);
+        if (deleteBtn) {
+            deleteBtn.onclick = () => deleteWish(wish);
+        }
+        
+        // Кнопки для вкладки pending
+        if (currentTab === 'pending') {
+            const approveBtn = document.getElementById(`approve-${wish.id}`);
+            const rejectBtn = document.getElementById(`reject-${wish.id}`);
+            const priceInput = document.getElementById(`price-${wish.id}`);
+            
+            if (approveBtn) approveBtn.onclick = () => showApproveModal(wish, priceInput?.value);
+            if (rejectBtn) rejectBtn.onclick = () => rejectWish(wish);
+        }
+    });
+}
 
-        function renderActions(wish, canAfford) {
-            if (currentTab === 'shop') {
-                if (canAfford) {
-                    return `<button class="buy-btn" id="buy-${wish.id}">Купить</button>`;
-                } else {
-                    const need = (wish.approved_price || wish.price) - (currentUser?.bonuses || 0);
-                    return `<button class="buy-btn disabled" disabled>Не хватает ${need}💰</button>`;
-                }
-            }
-            
-            if (currentTab === 'pending') {
-                return `
-                    <input type="number" class="price-input" id="price-${wish.id}" value="${wish.approved_price || wish.price}" step="5">
-                    <button class="approve-btn" id="approve-${wish.id}">✅ Одобрить</button>
-                    <button class="reject-btn" id="reject-${wish.id}">❌ Отклонить</button>
-                `;
-            }
-            
-            if (currentTab === 'history') {
-                const date = wish.purchased_at ? new Date(wish.purchased_at).toLocaleDateString() : '';
-                return `<div style="font-size:12px; color:#888;">${date}<br>Купил: ${escapeHtml(wish.purchased_by_name || wish.created_by_name)}</div>`;
-            }
-            
-            return '';
+ function renderActions(wish, canAfford) {
+    const canDelete = wish.created_by === currentUser?.id || currentUser?.role === 'parent';
+    const deleteBtn = canDelete ? `<button class="reject-btn" id="delete-${wish.id}" style="margin-left:auto;">🗑</button>` : '';
+    
+    if (currentTab === 'shop') {
+        if (canAfford) {
+            return `<button class="buy-btn" id="buy-${wish.id}">Купить</button>${deleteBtn}`;
+        } else {
+            const need = (wish.approved_price || wish.price) - (currentUser?.bonuses || 0);
+            return `<button class="buy-btn disabled" disabled>Не хватает ${need}💰</button>${deleteBtn}`;
         }
+    }
+    
+    if (currentTab === 'pending') {
+        return `
+            <input type="number" class="price-input" id="price-${wish.id}" value="${wish.approved_price || wish.price}" step="5">
+            <button class="approve-btn" id="approve-${wish.id}">✅ Одобрить</button>
+            <button class="reject-btn" id="reject-${wish.id}">❌ Отклонить</button>
+            ${deleteBtn}
+        `;
+    }
+    
+    if (currentTab === 'history') {
+        const date = wish.purchased_at ? new Date(wish.purchased_at).toLocaleDateString() : '';
+        return `<div style="font-size:12px; color:#888;">${date}<br>Купил: ${escapeHtml(wish.purchased_by_name || wish.created_by_name)}</div>${deleteBtn}`;
+    }
+    
+    return '';
+}
 
         function renderCreateForm(container) {
-            const icons = ['🎮', '🍕', '📚', '🎬', '🧸', '👕', '🚗', '🏀', '🎨', '🎵', '🐱', '🌸', '⭐', '🌈', '💎', '🕹️', '📱', '✈️'];
-            
-            container.innerHTML = `
-                <div style="max-width: 500px; margin: 0 auto;">
-                    <div style="background: rgba(15,15,26,0.9); backdrop-filter: blur(10px); border-radius: 30px; padding: 30px; border: 1px solid rgba(78,204,163,0.3);">
-                        <h3 style="color: #ffd700; margin-bottom: 20px; text-align: center;">✨ Создать новое желание</h3>
-                        
-                        <input type="text" id="wish-title" placeholder="Название желания" autocomplete="off">
-                        <textarea id="wish-description" placeholder="Описание (необязательно)"></textarea>
-                        <input type="url" id="wish-link" placeholder="Ссылка на товар (https://...)">
-                        <input type="url" id="wish-image-url" placeholder="Ссылка на изображение">
-                        <input type="file" id="wish-image-file" accept="image/*">
-                        
-                        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
-                            <span style="color: white;">💰 Цена:</span>
-                            <button class="bonus-btn" id="price-minus" style="width: 40px; height: 40px; border-radius: 50%; background: rgba(233,69,96,0.2); border: 1px solid #e94560; color: #e94560; font-size: 20px; cursor: pointer;">-</button>
-                            <input type="number" id="wish-price" value="50" style="width: 100px; text-align: center;">
-                            <button class="bonus-btn" id="price-plus" style="width: 40px; height: 40px; border-radius: 50%; background: rgba(78,204,163,0.2); border: 1px solid #4ecca3; color: #4ecca3; font-size: 20px; cursor: pointer;">+</button>
-                        </div>
-                        
-                        <div style="margin-bottom: 20px;">
-                            <div style="color: white; margin-bottom: 10px;">🎨 Выбери иконку:</div>
-                            <div class="icons-grid" id="icons-grid"></div>
-                        </div>
-                        
-                        <div class="modal-buttons" style="justify-content: center;">
-                            <button class="modal-save" id="submit-wish">✨ Отправить желание</button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            // Иконки
-            const iconsGrid = document.getElementById('icons-grid');
-            icons.forEach(icon => {
-                const iconDiv = document.createElement('div');
-                iconDiv.className = `icon-option ${icon === selectedIcon ? 'selected' : ''}`;
-                iconDiv.textContent = icon;
-                iconDiv.onclick = () => {
-                    document.querySelectorAll('.icon-option').forEach(el => el.classList.remove('selected'));
-                    iconDiv.classList.add('selected');
-                    selectedIcon = icon;
-                };
-                iconsGrid.appendChild(iconDiv);
-            });
-            
-            // Управление ценой
-            document.getElementById('price-minus').onclick = () => {
-                const input = document.getElementById('wish-price');
-                let val = parseInt(input.value) || 50;
-                if (val > 5) input.value = val - 5;
-            };
-            document.getElementById('price-plus').onclick = () => {
-                const input = document.getElementById('wish-price');
-                let val = parseInt(input.value) || 50;
-                input.value = val + 5;
-            };
-            
-            // Отправка
-            document.getElementById('submit-wish').onclick = async () => {
-                const title = document.getElementById('wish-title').value.trim();
-                if (!title) {
-                    alert('Введите название желания');
-                    return;
-                }
+    container.innerHTML = `
+        <div style="max-width: 580px; margin: 0 auto;">
+            <div style="background: rgba(15,15,26,0.95); backdrop-filter: blur(20px); border-radius: 28px; padding: 36px 32px; border: 1px solid rgba(78,204,163,0.3); box-shadow: 0 20px 50px rgba(0,0,0,0.4);">
                 
-                await createWish({
-                    title: title,
-                    description: document.getElementById('wish-description').value,
-                    price: parseInt(document.getElementById('wish-price').value) || 50,
-                    icon: selectedIcon,
-                    imageUrl: await pickWishImage(),
-                    linkUrl: document.getElementById('wish-link').value.trim()
-                });
-            };
+                <!-- Заголовок -->
+                <div style="text-align: center; margin-bottom: 28px;">
+                    <div style="font-size: 48px; margin-bottom: 8px;">✨</div>
+                    <h3 style="color: #ffd700; font-size: 26px; font-weight: 700; margin: 0;">Новое желание</h3>
+                    <p style="color: rgba(255,255,255,0.5); font-size: 13px; margin-top: 6px;">Опиши свою мечту и назначь цену</p>
+                </div>
+                
+                <!-- Фото -->
+                <div style="margin-bottom: 22px;">
+                    <label style="color: rgba(255,255,255,0.7); font-size: 13px; margin-bottom: 8px; display: block;">📸 Изображение</label>
+                    <div id="wish-image-preview" style="
+                        width: 100%; height: 180px; 
+                        background: rgba(44,62,80,0.5); 
+                        border: 2px dashed rgba(78,204,163,0.3); 
+                        border-radius: 16px; 
+                        display: flex; align-items: center; justify-content: center; 
+                        cursor: pointer; transition: all 0.2s;
+                        overflow: hidden; position: relative;
+                    " onclick="document.getElementById('wish-image-file').click()">
+                        <div id="wish-image-placeholder" style="text-align: center; color: rgba(255,255,255,0.4);">
+                            <div style="font-size: 40px; margin-bottom: 8px;">🖼️</div>
+                            <div style="font-size: 13px;">Нажмите чтобы загрузить фото</div>
+                        </div>
+                        <img id="wish-image-preview-img" src="" style="display:none; width:100%; height:100%; object-fit:cover; position:absolute; top:0; left:0;">
+                    </div>
+                    <input type="file" id="wish-image-file" accept="image/*" style="display:none;" onchange="previewWishImage(this)">
+                    <input type="url" id="wish-image-url" placeholder="Или вставьте ссылку на изображение" style="
+                        width: 100%; padding: 12px 14px; margin-top: 10px;
+                        background: rgba(44,62,80,0.6); border: 1px solid rgba(78,204,163,0.2);
+                        border-radius: 14px; color: #fff; font-size: 13px;
+                    ">
+                </div>
+                
+                <!-- Название -->
+                <div style="margin-bottom: 16px;">
+                    <label style="color: rgba(255,255,255,0.7); font-size: 13px; margin-bottom: 8px; display: block;">📝 Название</label>
+                    <input type="text" id="wish-title" placeholder="Что ты хочешь?" autocomplete="off" style="
+                        width: 100%; padding: 14px 16px;
+                        background: rgba(44,62,80,0.6); border: 1px solid rgba(78,204,163,0.2);
+                        border-radius: 14px; color: #fff; font-size: 15px; outline: none;
+                    ">
+                </div>
+                
+                <!-- Описание -->
+                <div style="margin-bottom: 16px;">
+                    <label style="color: rgba(255,255,255,0.7); font-size: 13px; margin-bottom: 8px; display: block;">📄 Описание</label>
+                    <textarea id="wish-description" placeholder="Опиши подробнее..." style="
+                        width: 100%; padding: 14px 16px; min-height: 80px; resize: vertical;
+                        background: rgba(44,62,80,0.6); border: 1px solid rgba(78,204,163,0.2);
+                        border-radius: 14px; color: #fff; font-size: 14px; outline: none;
+                    "></textarea>
+                </div>
+                
+                <!-- Ссылка на товар -->
+                <div style="margin-bottom: 20px;">
+                    <label style="color: rgba(255,255,255,0.7); font-size: 13px; margin-bottom: 8px; display: block;">🔗 Ссылка на товар</label>
+                    <input type="url" id="wish-link" placeholder="https://..." style="
+                        width: 100%; padding: 14px 16px;
+                        background: rgba(44,62,80,0.6); border: 1px solid rgba(78,204,163,0.2);
+                        border-radius: 14px; color: #fff; font-size: 14px; outline: none;
+                    ">
+                </div>
+                
+                <!-- Цена -->
+               <div style="display: flex; align-items: center; gap: 8px; background: rgba(15,25,35,0.6); border-radius: 60px; padding: 6px; width: 100%;">
+    <button id="price-minus" style="
+        width: 44px; height: 44px; min-width: 44px; flex-shrink: 0;
+        border-radius: 50%;
+        background: rgba(233,69,96,0.2); border: 1px solid rgba(233,69,96,0.4);
+        color: #e94560; font-size: 22px; cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+    ">−</button>
+    <input type="number" id="wish-price" value="50" style="
+        flex: 1 1 auto;
+        min-width: 60px;
+        text-align: center; font-size: 28px; font-weight: 700;
+        background: transparent; border: none; color: #ffd700;
+        outline: none; padding: 8px 4px;
+    ">
+    <button id="price-plus" style="
+        width: 44px; height: 44px; min-width: 44px; flex-shrink: 0;
+        border-radius: 50%;
+        background: rgba(78,204,163,0.2); border: 1px solid rgba(78,204,163,0.4);
+        color: #4ecca3; font-size: 22px; cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+    ">+</button>
+</div>
+                </div>
+                
+                <!-- Кнопка -->
+                <button id="submit-wish" style="
+                    width: 100%; padding: 16px;
+                    background: linear-gradient(135deg, #4ecca3, #2c8f6e);
+                    border: none; border-radius: 60px;
+                    color: #fff; font-size: 17px; font-weight: 700;
+                    cursor: pointer; transition: all 0.2s;
+                    letter-spacing: 0.5px;
+                ">✨ Отправить желание</button>
+            </div>
+        </div>
+    `;
+    
+    // Управление ценой
+    document.getElementById('price-minus').onclick = () => {
+        const input = document.getElementById('wish-price');
+        let val = parseInt(input.value) || 50;
+        if (val > 5) input.value = val - 5;
+    };
+    document.getElementById('price-plus').onclick = () => {
+        const input = document.getElementById('wish-price');
+        let val = parseInt(input.value) || 50;
+        input.value = val + 5;
+    };
+    
+    // Отправка
+    document.getElementById('submit-wish').onclick = async () => {
+        const title = document.getElementById('wish-title').value.trim();
+        if (!title) {
+            alert('Введите название желания');
+            return;
         }
+        
+        await createWish({
+            title: title,
+            description: document.getElementById('wish-description').value,
+            price: parseInt(document.getElementById('wish-price').value) || 50,
+            icon: '🎁',
+            imageUrl: await pickWishImage(),
+            linkUrl: document.getElementById('wish-link').value.trim()
+        });
+    };
+}
+function previewWishImage(input) {
+    const file = input.files?.[0];
+    if (!file) return;
+    
+    // Используем кроппер для картинок желаний
+    openCropper(file, 256).then(dataUrl => {
+        const preview = document.getElementById('wish-image-preview-img');
+        const placeholder = document.getElementById('wish-image-placeholder');
+        preview.src = dataUrl;
+        preview.style.display = 'block';
+        placeholder.style.display = 'none';
+        
+        // Сохраняем обрезанное изображение в data-url
+        const fileInputHidden = document.createElement('input');
+        fileInputHidden.type = 'hidden';
+        fileInputHidden.id = 'wish-image-data-url';
+        fileInputHidden.value = dataUrl;
+        input.parentElement.appendChild(fileInputHidden);
+    }).catch(err => {
+        console.error('Ошибка кроппера:', err);
+    });
+}
 
         async function createWish(wishData) {
             try {
@@ -972,6 +1120,30 @@ async function loadWishes() {
             }
         }
 
+        async function deleteWish(wish) {
+    if (!confirm(`Удалить желание "${wish.title}"?`)) return;
+    
+    try {
+        const response = await fetch(`${API_URL}/wishes/${wish.id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Ошибка удаления');
+        }
+        
+        // ВАЖНО: перезагружаем список желаний
+        await loadWishes();
+        
+        alert('🗑 Желание удалено');
+    } catch (error) {
+        console.error('Ошибка удаления:', error);
+        alert('❌ ' + error.message);
+    }
+}
+
         function showApproveModal(wish, currentPrice) {
             pendingApproveWish = wish;
             const modal = document.getElementById('approve-modal');
@@ -1061,14 +1233,20 @@ async function loadWishes() {
             renderContent();
         }
 
-        async function pickWishImage() {
-            const fileInput = document.getElementById('wish-image-file');
-            const urlInput = document.getElementById('wish-image-url')?.value?.trim();
-            if (urlInput) return urlInput;
-            const file = fileInput?.files?.[0];
-            if (!file) return null;
-            return await toDataUrl(file);
-        }
+       async function pickWishImage() {
+    const urlInput = document.getElementById('wish-image-url')?.value?.trim();
+    if (urlInput) return urlInput;
+    
+    // Проверяем сохраненное обрезанное изображение
+    const dataUrlInput = document.getElementById('wish-image-data-url');
+    if (dataUrlInput?.value) return dataUrlInput.value;
+    
+    // Если нет обрезанного - берем оригинальное
+    const fileInput = document.getElementById('wish-image-file');
+    const file = fileInput?.files?.[0];
+    if (!file) return null;
+    return await toDataUrl(file);
+}
 
         function toDataUrl(file) {
             return new Promise((resolve, reject) => {
@@ -1088,12 +1266,178 @@ async function loadWishes() {
 
         function getAvatarHtml(avatar, name) {
             if (avatar && avatar.startsWith('/assets/uploads/')) {
-                return `<img src="${escapeHtml(avatar)}" style="width:60px;height:60px;border-radius:50%;object-fit:cover;" alt="avatar">`;
+                const fullUrl = 'http://localhost:3001' + avatar;
+                return `<img src="${escapeHtml(fullUrl)}" style="width:60px;height:60px;border-radius:50%;object-fit:cover;" alt="avatar">`;
             }
             const base = (name || 'П').trim();
             const parts = base.split(/\s+/).filter(Boolean).slice(0, 2);
             const initials = parts.map(p => p[0]?.toUpperCase() || '').join('') || 'U';
             return `<span style="font-size:18px;font-weight:700;color:#fff;">${escapeHtml(initials)}</span>`;
+        }
+
+        // ========== КРОППЕР ==========
+        function toSquareDataUrl(file, size = 256) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const side = Math.min(img.width, img.height);
+                        const sx = (img.width - side) / 2;
+                        const sy = (img.height - side) / 2;
+                        const canvas = document.createElement('canvas');
+                        canvas.width = size;
+                        canvas.height = size;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
+                        resolve(canvas.toDataURL('image/jpeg', 0.9));
+                    };
+                    img.onerror = reject;
+                    img.src = reader.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function openCropper(file, outSize = 256) {
+            return new Promise((resolve, reject) => {
+                const modal = document.getElementById('cropper-modal');
+                const canvas = document.getElementById('cropper-canvas');
+                const zoom = document.getElementById('cropper-zoom');
+                const btnCancel = document.getElementById('cropper-cancel');
+                const btnApply = document.getElementById('cropper-apply');
+                if (!modal || !canvas || !zoom || !btnCancel || !btnApply) {
+                    toSquareDataUrl(file, outSize).then(resolve).catch(reject);
+                    return;
+                }
+
+                const ctx = canvas.getContext('2d');
+                const reader = new FileReader();
+                reader.onerror = () => reject(new Error('read error'));
+                reader.onload = () => {
+                    const img = new Image();
+                    img.onerror = () => reject(new Error('image error'));
+                    img.onload = () => {
+                        const cw = canvas.width;
+                        const ch = canvas.height;
+                        const baseScale = Math.max(cw / img.width, ch / img.height);
+
+                        cropperState = {
+                            img,
+                            cw,
+                            ch,
+                            baseScale,
+                            zoom: 1,
+                            offsetX: 0,
+                            offsetY: 0,
+                            dragging: false,
+                            lastX: 0,
+                            lastY: 0
+                        };
+
+                        zoom.value = '1';
+
+                        const draw = () => {
+                            if (!cropperState) return;
+                            const s = cropperState.baseScale * cropperState.zoom;
+                            const dw = img.width * s;
+                            const dh = img.height * s;
+                            let dx = (cw - dw) / 2 + cropperState.offsetX;
+                            let dy = (ch - dh) / 2 + cropperState.offsetY;
+
+                            const minDx = cw - dw;
+                            const minDy = ch - dh;
+                            dx = Math.min(0, Math.max(minDx, dx));
+                            dy = Math.min(0, Math.max(minDy, dy));
+                            cropperState.offsetX = dx - (cw - dw) / 2;
+                            cropperState.offsetY = dy - (ch - dh) / 2;
+
+                            ctx.clearRect(0, 0, cw, ch);
+                            ctx.drawImage(img, dx, dy, dw, dh);
+                        };
+
+                        const onPointerDown = (ev) => {
+                            ev.preventDefault();
+                            canvas.setPointerCapture?.(ev.pointerId);
+                            cropperState.dragging = true;
+                            cropperState.lastX = ev.clientX;
+                            cropperState.lastY = ev.clientY;
+                        };
+                        const onPointerMove = (ev) => {
+                            if (!cropperState?.dragging) return;
+                            ev.preventDefault();
+                            const dx = ev.clientX - cropperState.lastX;
+                            const dy = ev.clientY - cropperState.lastY;
+                            cropperState.lastX = ev.clientX;
+                            cropperState.lastY = ev.clientY;
+                            cropperState.offsetX += dx;
+                            cropperState.offsetY += dy;
+                            draw();
+                        };
+                        const onPointerUp = (ev) => {
+                            ev.preventDefault();
+                            cropperState.dragging = false;
+                        };
+
+                        const cleanup = () => {
+                            canvas.removeEventListener('pointerdown', onPointerDown);
+                            canvas.removeEventListener('pointermove', onPointerMove);
+                            canvas.removeEventListener('pointerup', onPointerUp);
+                            canvas.removeEventListener('pointercancel', onPointerUp);
+                            zoom.oninput = null;
+                            btnCancel.onclick = null;
+                            btnApply.onclick = null;
+                            modal.onclick = null;
+                            cropperState = null;
+                            modal.classList.remove('active');
+                        };
+
+                        canvas.addEventListener('pointerdown', onPointerDown);
+                        canvas.addEventListener('pointermove', onPointerMove);
+                        canvas.addEventListener('pointerup', onPointerUp);
+                        canvas.addEventListener('pointercancel', onPointerUp);
+
+                        zoom.oninput = () => {
+                            if (!cropperState) return;
+                            cropperState.zoom = Math.max(1, Math.min(3, Number(zoom.value) || 1));
+                            draw();
+                        };
+
+                        btnCancel.onclick = () => {
+                            cleanup();
+                            reject(new Error('cancelled'));
+                        };
+                        btnApply.onclick = () => {
+                            try {
+                                const out = document.createElement('canvas');
+                                out.width = outSize;
+                                out.height = outSize;
+                                const octx = out.getContext('2d');
+                                octx.drawImage(canvas, 0, 0, outSize, outSize);
+                                const dataUrl = out.toDataURL('image/jpeg', 0.9);
+                                cleanup();
+                                resolve(dataUrl);
+                            } catch (e) {
+                                cleanup();
+                                reject(e);
+                            }
+                        };
+
+                        modal.onclick = (e) => {
+                            if (e.target === modal) {
+                                cleanup();
+                                reject(new Error('cancelled'));
+                            }
+                        };
+
+                        modal.classList.add('active');
+                        draw();
+                    };
+                    img.src = reader.result;
+                };
+                reader.readAsDataURL(file);
+            });
         }
 
         // Запуск

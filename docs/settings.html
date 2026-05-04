@@ -6,1067 +6,410 @@
     <title>HomeSpace - Настройки</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            min-height: 100vh;
-            position: relative;
-        }
-
-        body::before {
-            content: '';
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at 20% 50%, rgba(78, 204, 163, 0.1) 0%, transparent 50%);
-            animation: pulse 8s ease-in-out infinite;
-            pointer-events: none;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 0.3; }
-            50% { opacity: 0.6; }
-        }
-
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 20px;
-            position: relative;
-            z-index: 10;
-        }
-
-        /* Кнопка назад */
-        .back-btn {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(78, 204, 163, 0.5);
-            border-radius: 40px;
-            padding: 10px 20px;
-            color: white;
-            font-size: 16px;
-            font-weight: 500;
-            cursor: pointer;
-            z-index: 100;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.2s ease;
-        }
-
-        .back-btn:hover {
-            background: rgba(78, 204, 163, 0.3);
-            border-color: #4ecca3;
-            transform: translateX(-3px);
-        }
-
-        /* Заголовок */
-        .header {
-            text-align: center;
-            padding: 30px 0 20px;
-        }
-
-        .header h1 {
-            font-size: 48px;
-            font-weight: 800;
-            background: linear-gradient(135deg, #ffd700, #4ecca3);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        /* Вкладки */
-        .tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-
-        .tab-btn {
-            background: rgba(44, 62, 80, 0.8);
-            border: 1px solid rgba(78, 204, 163, 0.3);
-            padding: 12px 30px;
-            border-radius: 40px;
-            color: white;
-            font-size: 16px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-weight: 500;
-        }
-
-        .tab-btn.active {
-            background: linear-gradient(135deg, #4ecca3, #3ba87f);
-            border-color: transparent;
-        }
-
-        /* Карточки настроек */
-        .settings-card {
-            background: rgba(15, 15, 26, 0.9);
-            backdrop-filter: blur(10px);
-            border-radius: 30px;
-            padding: 25px;
-            margin-bottom: 25px;
-            border: 1px solid rgba(78, 204, 163, 0.2);
-        }
-
-        .settings-title {
-            font-size: 20px;
-            font-weight: 700;
-            color: #ffd700;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .settings-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .settings-row:last-child {
-            border-bottom: none;
-        }
-
-        .settings-label {
-            color: white;
-            font-size: 16px;
-        }
-
-        .settings-value {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        /* Аватары */
-        .avatars-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            margin-top: 10px;
-        }
-
-        .avatar-option {
-            width: 50px;
-            height: 50px;
-            background: rgba(44, 62, 80, 0.8);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 28px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            border: 2px solid transparent;
-        }
-
-        .avatar-option:hover {
-            transform: scale(1.1);
-            background: rgba(78, 204, 163, 0.3);
-        }
-
-        .avatar-option.selected {
-            border-color: #4ecca3;
-            background: rgba(78, 204, 163, 0.2);
-            transform: scale(1.1);
-        }
-
-        /* Кнопки */
-        .edit-btn {
-            background: rgba(78, 204, 163, 0.2);
-            border: 1px solid #4ecca3;
-            padding: 6px 15px;
-            border-radius: 30px;
-            color: #4ecca3;
-            cursor: pointer;
-            font-size: 13px;
-        }
-
-        .logout-btn {
-            background: rgba(233, 69, 96, 0.2);
-            border: 1px solid #e94560;
-            padding: 12px 30px;
-            border-radius: 40px;
-            color: #e94560;
-            font-size: 16px;
-            cursor: pointer;
-            width: 100%;
-            margin-top: 20px;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); min-height: 100vh; position: relative; }
+        body::before { content: ''; position: absolute; width: 100%; height: 100%; background: radial-gradient(circle at 20% 50%, rgba(78, 204, 163, 0.1) 0%, transparent 50%); animation: pulse 8s ease-in-out infinite; pointer-events: none; }
+        @keyframes pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 0.6; } }
+        .container { max-width: 1000px; margin: 0 auto; padding: 20px; position: relative; z-index: 10; }
+        .back-btn { position: fixed; top: 20px; left: 20px; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(10px); border: 1px solid rgba(78, 204, 163, 0.5); border-radius: 40px; padding: 10px 20px; color: white; font-size: 16px; font-weight: 500; cursor: pointer; z-index: 100; display: flex; align-items: center; gap: 8px; transition: all 0.2s ease; }
+        .back-btn:hover { background: rgba(78, 204, 163, 0.3); border-color: #4ecca3; transform: translateX(-3px); }
+        .header { text-align: center; padding: 30px 0 20px; }
+        .header h1 { font-size: 48px; font-weight: 800; background: linear-gradient(135deg, #ffd700, #4ecca3); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 30px; flex-wrap: wrap; justify-content: center; }
+        .tab-btn { background: rgba(44, 62, 80, 0.8); border: 1px solid rgba(78, 204, 163, 0.3); padding: 12px 30px; border-radius: 40px; color: white; font-size: 16px; cursor: pointer; transition: all 0.2s ease; font-weight: 500; }
+        .tab-btn.active { background: linear-gradient(135deg, #4ecca3, #3ba87f); border-color: transparent; }
+        .settings-card { background: rgba(15, 15, 26, 0.9); backdrop-filter: blur(10px); border-radius: 30px; padding: 25px; margin-bottom: 25px; border: 1px solid rgba(78, 204, 163, 0.2); }
+        .settings-title { font-size: 20px; font-weight: 700; color: #ffd700; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+        .settings-row { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+        .settings-row:last-child { border-bottom: none; }
+        .settings-label { color: white; font-size: 16px; }
+        .settings-value { display: flex; align-items: center; gap: 15px; }
+        .edit-btn { background: rgba(78, 204, 163, 0.2); border: 1px solid #4ecca3; padding: 6px 15px; border-radius: 30px; color: #4ecca3; cursor: pointer; font-size: 13px; }
+        .logout-btn { background: rgba(233, 69, 96, 0.2); border: 1px solid #e94560; padding: 12px 30px; border-radius: 40px; color: #e94560; font-size: 16px; cursor: pointer; width: 100%; margin-top: 20px; }
         .theme-toggle { background: rgba(78, 204, 163, 0.2); border: 1px solid #4ecca3; padding: 8px 12px; border-radius: 20px; color: #fff; cursor: pointer; }
-
-        .create-family-btn {
-            background: linear-gradient(135deg, #4ecca3, #3ba87f);
-            border: none;
-            padding: 12px 25px;
-            border-radius: 40px;
-            color: white;
-            font-weight: 600;
-            cursor: pointer;
-        }
-
-        .join-family-btn {
-            background: rgba(78, 204, 163, 0.2);
-            border: 1px solid #4ecca3;
-            padding: 12px 25px;
-            border-radius: 40px;
-            color: #4ecca3;
-            cursor: pointer;
-        }
-
-        .invite-code {
-            background: rgba(0, 0, 0, 0.5);
-            padding: 8px 15px;
-            border-radius: 30px;
-            font-family: monospace;
-            font-size: 18px;
-            letter-spacing: 2px;
-            color: #ffd700;
-        }
-
-        .copy-btn {
-            background: rgba(78, 204, 163, 0.2);
-            border: none;
-            padding: 6px 12px;
-            border-radius: 20px;
-            color: #4ecca3;
-            cursor: pointer;
-        }
-
-        .member-list {
-            margin-top: 15px;
-        }
-
-        .member-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 12px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 15px;
-            margin-bottom: 8px;
-        }
-
-        .member-info {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .member-avatar {
-            width: 36px;
-            height: 36px;
-            background: rgba(78, 204, 163, 0.2);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-        }
-
-        .member-name {
-            color: white;
-            font-weight: 500;
-        }
-
-        .member-role {
-            font-size: 11px;
-            color: rgba(255, 255, 255, 0.5);
-        }
-
-        .online-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: #4ecca3;
-            box-shadow: 0 0 5px #4ecca3;
-        }
-
-        .online-dot.offline {
-            background: #666;
-            box-shadow: none;
-        }
-
-        /* Модальное окно */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.9);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal.active {
-            display: flex;
-        }
-
-        .modal-content {
-            background: rgba(26, 26, 46, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 30px;
-            padding: 30px;
-            max-width: 400px;
-            width: 90%;
-            border: 1px solid rgba(78, 204, 163, 0.5);
-        }
-
-        .modal-content h3 {
-            color: white;
-            font-size: 24px;
-            margin-bottom: 20px;
-        }
-
-        .modal-content input {
-            width: 100%;
-            padding: 12px 15px;
-            margin-bottom: 20px;
-            background: rgba(44, 62, 80, 0.8);
-            border: 1px solid rgba(78, 204, 163, 0.3);
-            border-radius: 12px;
-            color: white;
-            font-size: 16px;
-        }
-
-        .modal-buttons {
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-        }
-
-        .modal-save {
-            background: #4ecca3;
-            border: none;
-            padding: 10px 25px;
-            border-radius: 30px;
-            color: white;
-            cursor: pointer;
-        }
-
-        .modal-cancel {
-            background: rgba(233, 69, 96, 0.2);
-            border: 1px solid #e94560;
-            padding: 10px 25px;
-            border-radius: 30px;
-            color: #e94560;
-            cursor: pointer;
-        }
-
-        .stat-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 0;
-        }
-
-        .stat-label {
-            color: rgba(255, 255, 255, 0.7);
-        }
-
-        .stat-value {
-            color: #ffd700;
-            font-weight: 700;
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                padding: 15px;
-            }
-            .header h1 {
-                font-size: 32px;
-            }
-            .settings-row {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 10px;
-            }
-            .settings-value {
-                width: 100%;
-                justify-content: space-between;
-            }
-        }
+        .create-family-btn { background: linear-gradient(135deg, #4ecca3, #3ba87f); border: none; padding: 12px 25px; border-radius: 40px; color: white; font-weight: 600; cursor: pointer; }
+        .join-family-btn { background: rgba(78, 204, 163, 0.2); border: 1px solid #4ecca3; padding: 12px 25px; border-radius: 40px; color: #4ecca3; cursor: pointer; }
+        .invite-code { background: rgba(0, 0, 0, 0.5); padding: 8px 15px; border-radius: 30px; font-family: monospace; font-size: 18px; letter-spacing: 2px; color: #ffd700; }
+        .copy-btn { background: rgba(78, 204, 163, 0.2); border: none; padding: 6px 12px; border-radius: 20px; color: #4ecca3; cursor: pointer; }
+        .member-list { margin-top: 15px; }
+        .member-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; background: rgba(0, 0, 0, 0.3); border-radius: 15px; margin-bottom: 8px; }
+        .member-info { display: flex; align-items: center; gap: 12px; }
+        .member-avatar { width: 36px; height: 36px; background: rgba(78, 204, 163, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+        .member-name { color: white; font-weight: 500; }
+        .member-role { font-size: 11px; color: rgba(255, 255, 255, 0.5); }
+        .online-dot { width: 10px; height: 10px; border-radius: 50%; background: #4ecca3; box-shadow: 0 0 5px #4ecca3; }
+        .online-dot.offline { background: #666; box-shadow: none; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9); z-index: 1000; justify-content: center; align-items: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: rgba(26, 26, 46, 0.95); backdrop-filter: blur(10px); border-radius: 30px; padding: 30px; max-width: 400px; width: 90%; border: 1px solid rgba(78, 204, 163, 0.5); }
+        .modal-content h3 { color: white; font-size: 24px; margin-bottom: 20px; }
+        .modal-content input { width: 100%; padding: 12px 15px; margin-bottom: 20px; background: rgba(44, 62, 80, 0.8); border: 1px solid rgba(78, 204, 163, 0.3); border-radius: 12px; color: white; font-size: 16px; }
+        .modal-buttons { display: flex; gap: 10px; justify-content: flex-end; }
+        .stat-item { display: flex; justify-content: space-between; padding: 10px 0; }
+        .stat-label { color: rgba(255, 255, 255, 0.7); }
+        .stat-value { color: #ffd700; font-weight: 700; }
+        @media (max-width: 768px) { .container { padding: 15px; } .header h1 { font-size: 32px; } .settings-row { flex-direction: column; align-items: flex-start; gap: 10px; } .settings-value { width: 100%; justify-content: space-between; } }
     </style>
 </head>
 <body>
-    <button class="back-btn" onclick="window.location.href='/'">
-        ← Назад в меню
-    </button>
-
-    <div class="container">
-        <div class="header">
-            <h1>Настройки</h1>
-        </div>
-
-        <div class="tabs" id="tabs">
-            <button class="tab-btn active" data-tab="profile">Профиль</button>
-            <button class="tab-btn" data-tab="family">Семья</button>
-            <button class="tab-btn" data-tab="stats">Статистика</button>
-        </div>
-
-        <div id="content-container"></div>
-
-        <button class="logout-btn" id="logout-btn">Выйти из аккаунта</button>
+<button class="back-btn" onclick="window.location.href='/'">← Назад в меню</button>
+<div class="container">
+    <div class="header"><h1>Настройки</h1></div>
+    <div class="tabs" id="tabs">
+        <button class="tab-btn active" data-tab="profile">Профиль</button>
+        <button class="tab-btn" data-tab="family">Семья</button>
+        <button class="tab-btn" data-tab="stats">Статистика</button>
     </div>
+    <div id="content-container"></div>
+    <button class="logout-btn" id="logout-btn">Выйти из аккаунта</button>
+</div>
 
-    <!-- Модальное окно изменения имени -->
-    <div class="modal" id="name-modal">
-        <div class="modal-content">
-            <h3>Изменить имя</h3>
-            <input type="text" id="new-name" placeholder="Новое имя">
-            <div class="modal-buttons">
-                <button class="modal-cancel" id="name-cancel">Отмена</button>
-                <button class="modal-save" id="name-save">Сохранить</button>
-            </div>
-        </div>
-    </div>
+<div class="modal" id="name-modal"><div class="modal-content"><h3>Изменить имя</h3><input type="text" id="new-name" placeholder="Новое имя"><div class="modal-buttons"><button class="modal-cancel" id="name-cancel" style="background:rgba(233,69,96,0.2);border:1px solid #e94560;padding:10px 25px;border-radius:30px;color:#e94560;cursor:pointer;">Отмена</button><button class="modal-save" id="name-save" style="background:#4ecca3;border:none;padding:10px 25px;border-radius:30px;color:white;cursor:pointer;">Сохранить</button></div></div></div>
+<div class="modal" id="family-modal"><div class="modal-content"><h3>Создать семью</h3><input type="text" id="family-name" placeholder="Название семьи"><div class="modal-buttons"><button class="modal-cancel" id="family-cancel" style="background:rgba(233,69,96,0.2);border:1px solid #e94560;padding:10px 25px;border-radius:30px;color:#e94560;cursor:pointer;">Отмена</button><button class="modal-save" id="family-save" style="background:#4ecca3;border:none;padding:10px 25px;border-radius:30px;color:white;cursor:pointer;">Создать</button></div></div></div>
+<div class="modal" id="join-modal"><div class="modal-content"><h3>Присоединиться к семье</h3><input type="text" id="join-code" placeholder="Код приглашения" style="text-transform:uppercase;"><div class="modal-buttons"><button class="modal-cancel" id="join-cancel" style="background:rgba(233,69,96,0.2);border:1px solid #e94560;padding:10px 25px;border-radius:30px;color:#e94560;cursor:pointer;">Отмена</button><button class="modal-save" id="join-save" style="background:#4ecca3;border:none;padding:10px 25px;border-radius:30px;color:white;cursor:pointer;">Присоединиться</button></div></div></div>
+<div class="modal" id="avatar-crop-modal"><div class="modal-content" style="max-width:440px;"><h3>Обрезка фото</h3><div style="display:flex; justify-content:center;"><canvas id="cropper-canvas" width="280" height="280" style="width: 280px; height: 280px; border-radius: 22px; background: rgba(0,0,0,0.25); border: 1px solid rgba(78, 204, 163, 0.25); touch-action: none;"></canvas></div><div style="margin-top: 16px;"><label style="display:block; color: rgba(255,255,255,0.7); font-size: 13px; font-weight: 500; margin-bottom: 8px;">Масштаб</label><input id="cropper-zoom" type="range" min="1" max="3" step="0.01" value="1" style="width: 100%;"></div><div class="modal-buttons" style="margin-top: 18px;"><button class="modal-cancel" id="crop-cancel" style="background:rgba(233,69,96,0.2);border:1px solid #e94560;padding:10px 20px;border-radius:30px;color:#e94560;cursor:pointer;">Отмена</button><button class="modal-save" id="crop-save" style="background:#4ecca3;border:none;padding:10px 20px;border-radius:30px;color:white;cursor:pointer;">Готово</button></div></div></div>
+<script>
+const API_URL = 'http://localhost:3001/api';
+let token = localStorage.getItem('homespace_token');
+let currentUser = null, family = null, familyMembers = [], currentTab = 'profile';
 
-    <!-- Модальное окно создания семьи -->
-    <div class="modal" id="family-modal">
-        <div class="modal-content">
-            <h3>Создать семью</h3>
-            <input type="text" id="family-name" placeholder="Название семьи">
-            <div class="modal-buttons">
-                <button class="modal-cancel" id="family-cancel">Отмена</button>
-                <button class="modal-save" id="family-save">Создать</button>
-            </div>
-        </div>
-    </div>
+function closeWebView() {
+    if (window.parent && window.parent !== window) { window.parent.postMessage('close-webview', '*'); }
+    else { window.location.href = '/'; }
+}
+document.addEventListener('DOMContentLoaded', () => {
+    const closeBtn = document.getElementById('close-btn');
+    if (closeBtn) closeBtn.onclick = closeWebView;
+});
+function handleResize() {
+    if (window.parent && window.parent !== window) window.parent.postMessage('ready', '*');
+    const c = document.querySelector('.container');
+    if (c && window.innerWidth < 768) c.style.padding = '15px';
+}
+window.addEventListener('message', (e) => { if (e.data && e.data.type === 'resize') { document.body.style.margin='0'; document.body.style.padding='0'; } });
+window.addEventListener('load', handleResize); window.addEventListener('resize', handleResize); handleResize();
 
-    <!-- Модальное окно присоединения к семье -->
-    <div class="modal" id="join-modal">
-        <div class="modal-content">
-            <h3>Присоединиться к семье</h3>
-            <input type="text" id="join-code" placeholder="Код приглашения" style="text-transform: uppercase;">
-            <div class="modal-buttons">
-                <button class="modal-cancel" id="join-cancel">Отмена</button>
-                <button class="modal-save" id="join-save">Присоединиться</button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        const API_URL = 'http://localhost:3001/api';
-        let token = localStorage.getItem('homespace_token');
-        let currentUser = null;
-        let family = null;
-        let familyMembers = [];
-        let currentTab = 'profile';
-                function closeWebView() {
-            if (window.parent && window.parent !== window) {
-                window.parent.postMessage('close-webview', '*');
-            } else {
-                window.location.href = '/';
-            }
-        }
-
-        // Настройка кнопки закрытия после загрузки DOM
-        document.addEventListener('DOMContentLoaded', () => {
-            const closeBtn = document.getElementById('close-btn');
-            if (closeBtn) {
-                closeBtn.onclick = closeWebView;
-            }
-        });
-
-        // Адаптация к размеру окна в WebView
-    function handleResize() {
-        // Если мы внутри iframe, сообщаем родителю о готовности
-        if (window.parent && window.parent !== window) {
-            // Сообщаем, что страница загружена
-            window.parent.postMessage('ready', '*');
-        }
-        
-        // Адаптируем контейнер под размер iframe
-        const container = document.querySelector('.container');
-        if (container && window.innerWidth < 768) {
-            container.style.padding = '15px';
-        }
+async function init() {
+    await loadCurrentUser();
+    if (!token || !currentUser) { window.location.href = '/'; return; }
+    await loadFamily(); await loadFamilyMembers();
+    setupEventListeners(); renderContent();
+}
+async function loadCurrentUser() {
+    const saved = localStorage.getItem('homespace_currentUser');
+    if (saved) { try { currentUser = JSON.parse(saved); token = localStorage.getItem('homespace_token'); } catch(e) {} }
+}
+async function loadFamily() {
+    try { const r = await fetch(`${API_URL}/family`,{headers:{'Authorization':`Bearer ${token}`}}); if(r.ok){const d=await r.json();family=d.family;} } catch(e) {}
+}
+async function loadFamilyMembers() {
+    if(!currentUser?.familyId) return;
+    try { const r = await fetch(`${API_URL}/families/${currentUser.familyId}/members`,{headers:{'Authorization':`Bearer ${token}`}}); if(r.ok) familyMembers=await r.json(); } catch(e) {}
+}
+async function renderContent() {
+    const c = document.getElementById('content-container');
+    if(currentTab==='profile') renderProfile(c);
+    else if(currentTab==='family') renderFamily(c);
+    else if(currentTab==='stats') await renderStats(c);
+}
+function renderProfile(container) {
+    const theme = localStorage.getItem('homespace_theme')||'dark';
+    container.innerHTML = `<div class="settings-card"><div class="settings-title">👤 Профиль</div>
+        <div class="settings-row"><div class="settings-label">Фото</div><div class="settings-value"><div style="font-size:24px;" id="current-avatar"></div><input type="file" id="avatar-upload" accept="image/*" style="display:none;"><button class="edit-btn" id="avatar-upload-btn">Загрузить фото</button></div></div>
+        <div class="settings-row"><div class="settings-label">Имя</div><div class="settings-value"><span id="user-name-display">${escapeHtml(currentUser?.name||'Пользователь')}</span><button class="edit-btn" id="edit-name-btn">Изменить</button></div></div>
+        <div class="settings-row"><div class="settings-label">Роль</div><div class="settings-value"><span>${currentUser?.role==='parent'?'Родитель':currentUser?.role==='user'?'Обычный пользователь':'Ребёнок'}</span></div></div>
+        <div class="settings-row"><div class="settings-label">Email</div><div class="settings-value"><span>${escapeHtml(currentUser?.email||'—')}</span></div></div>
+        </div></div>`;
+    document.getElementById('current-avatar').innerHTML = getAvatarHtml(currentUser?.avatar, currentUser?.name);
+    document.getElementById('avatar-upload-btn').onclick = () => document.getElementById('avatar-upload').click();
+    document.getElementById('avatar-upload').onchange = onAvatarUpload;
+    document.getElementById('edit-name-btn').onclick = () => { document.getElementById('new-name').value=currentUser?.name||''; document.getElementById('name-modal').classList.add('active'); };
+}
+function renderFamily(container) {
+    const isParent = currentUser?.role==='parent'||currentUser?.role==='admin';
+    if(!currentUser?.familyId) {
+        container.innerHTML = `<div class="settings-card"><div class="settings-title">👨‍👩‍👧 Семья</div><div style="text-align:center;padding:30px;"><div style="font-size:24px;margin-bottom:15px;">Нет семьи</div><p style="color:white;margin-bottom:20px;">Вы пока не состоите в семье</p><div style="display:flex;gap:15px;justify-content:center;flex-wrap:wrap;">${isParent?'<button class="create-family-btn" id="create-family-btn">Создать семью</button>':''}<button class="join-family-btn" id="join-family-btn">Присоединиться по коду</button></div></div></div>`;
+        if(isParent) document.getElementById('create-family-btn').onclick = () => document.getElementById('family-modal').classList.add('active');
+        document.getElementById('join-family-btn').onclick = () => document.getElementById('join-modal').classList.add('active');
+        return;
     }
-    
-    // Слушаем сообщения от родителя
-    window.addEventListener('message', (event) => {
-        if (event.data && event.data.type === 'resize') {
-            // Обновляем размеры при необходимости
-            document.body.style.margin = '0';
-            document.body.style.padding = '0';
-        }
+    let membersHtml = '';
+    familyMembers.forEach(m => {
+        const online = m.last_login && (new Date()-new Date(m.last_login))<5*60*1000;
+        membersHtml += `<div class="member-item"><div class="member-info"><div class="member-avatar">${getAvatarHtml(m.avatar,m.name)}</div><div><div class="member-name">${escapeHtml(m.name)}${m.id===currentUser?.id?' (Вы)':''}</div><div class="member-role">${m.role==='parent'?'Родитель':'Ребёнок'}</div></div></div><div class="online-dot ${online?'':'offline'}"></div></div>`;
     });
-    
-    // Запускаем при загрузке
-    window.addEventListener('load', handleResize);
-    window.addEventListener('resize', handleResize);
-    handleResize();
-        // Инициализация
-        async function init() {
-            await loadCurrentUser();
-            if (!token || !currentUser) {
-                window.location.href = '/';
-                return;
-            }
-            await loadFamily();
-            await loadFamilyMembers();
-            setupEventListeners();
-            renderContent();
-        }
-
-        async function loadCurrentUser() {
-            const saved = localStorage.getItem('homespace_currentUser');
-            if (saved) {
-                try {
-                    currentUser = JSON.parse(saved);
-                    token = localStorage.getItem('homespace_token');
-                } catch (e) {
-                    console.error('Ошибка загрузки пользователя:', e);
-                }
-            }
-        }
-
-        async function loadFamily() {
-            try {
-                const response = await fetch(`${API_URL}/family`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    family = data.family;
-                }
-            } catch (error) {
-                console.error('Ошибка загрузки семьи:', error);
-            }
-        }
-
-        async function loadFamilyMembers() {
-            if (!currentUser?.familyId) return;
-            
-            try {
-                const response = await fetch(`${API_URL}/families/${currentUser.familyId}/members`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                
-                if (response.ok) {
-                    familyMembers = await response.json();
-                }
-            } catch (error) {
-                console.error('Ошибка загрузки членов семьи:', error);
-            }
-        }
-
-        async function renderContent() {
-            const container = document.getElementById('content-container');
-            
-            if (currentTab === 'profile') {
-                renderProfile(container);
-            } else if (currentTab === 'family') {
-                renderFamily(container);
-            } else if (currentTab === 'stats') {
-                await renderStats(container);
-            }
-        }
-
-        function renderProfile(container) {
-            const currentTheme = localStorage.getItem('homespace_theme') || 'dark';
-            container.innerHTML = `
-                <div class="settings-card">
-                    <div class="settings-title">Профиль</div>
-                    
-                    <div class="settings-row">
-                        <div class="settings-label">Фото</div>
-                        <div class="settings-value">
-                            <div style="font-size: 24px;" id="current-avatar"></div>
-                            <input type="file" id="avatar-upload" accept="image/*" style="display:none;">
-                            <button class="edit-btn" id="avatar-upload-btn">Загрузить фото</button>
-                        </div>
-                    </div>
-                    
-                    <div class="settings-row">
-                        <div class="settings-label">Имя</div>
-                        <div class="settings-value">
-                            <span id="user-name-display">${escapeHtml(currentUser?.name || 'Пользователь')}</span>
-                            <button class="edit-btn" id="edit-name-btn">Изменить</button>
-                        </div>
-                    </div>
-                    
-                    <div class="settings-row">
-                        <div class="settings-label">Роль</div>
-                        <div class="settings-value">
-                            <span>${currentUser?.role === 'parent' ? 'Родитель' : currentUser?.role === 'user' ? 'Обычный пользователь' : 'Ребёнок'}</span>
-                        </div>
-                    </div>
-                    
-                    <div class="settings-row">
-                        <div class="settings-label">Email</div>
-                        <div class="settings-value">
-                            <span>${escapeHtml(currentUser?.email || '—')}</span>
-                        </div>
-                    </div>
-                    <div class="settings-row">
-                        <div class="settings-label">Тема</div>
-                        <div class="settings-value">
-                            <button class="theme-toggle" id="theme-toggle">${currentTheme === 'dark' ? 'Темная' : 'Светлая'}</button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            document.getElementById('current-avatar').innerHTML = getAvatarHtml(currentUser?.avatar, currentUser?.name);
-            document.getElementById('avatar-upload-btn').onclick = () => document.getElementById('avatar-upload').click();
-            document.getElementById('avatar-upload').onchange = onAvatarUpload;
-            
-            // Изменение имени
-            document.getElementById('edit-name-btn').onclick = () => {
-                const modal = document.getElementById('name-modal');
-                document.getElementById('new-name').value = currentUser?.name || '';
-                modal.classList.add('active');
-            };
-            document.getElementById('theme-toggle').onclick = toggleTheme;
-        }
-
-        function renderFamily(container) {
-            const isParent = currentUser?.role === 'parent' || currentUser?.role === 'admin';
-            const hasFamily = currentUser?.familyId;
-            
-            if (!hasFamily) {
-                container.innerHTML = `
-                    <div class="settings-card">
-                    <div class="settings-title">Семья</div>
-                        <div style="text-align: center; padding: 30px;">
-                            <div style="font-size: 24px; margin-bottom: 15px;">Нет семьи</div>
-                            <p style="color: white; margin-bottom: 20px;">Вы пока не состоите в семье</p>
-                            <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
-                                ${isParent ? '<button class="create-family-btn" id="create-family-btn">Создать семью</button>' : ''}
-                                <button class="join-family-btn" id="join-family-btn">Присоединиться по коду</button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                
-                if (isParent) {
-                    document.getElementById('create-family-btn').onclick = () => {
-                        document.getElementById('family-modal').classList.add('active');
-                    };
-                }
-                document.getElementById('join-family-btn').onclick = () => {
-                    document.getElementById('join-modal').classList.add('active');
-                };
-                return;
-            }
-            
-            // Есть семья
-            let membersHtml = '';
-            familyMembers.forEach(member => {
-                const isOnline = member.last_login && (new Date() - new Date(member.last_login)) < 5 * 60 * 1000;
-                const isCurrent = member.id === currentUser?.id;
-                
-                membersHtml += `
-                    <div class="member-item">
-                        <div class="member-info">
-                            <div class="member-avatar">${getAvatarHtml(member.avatar, member.name)}</div>
-                            <div>
-                                <div class="member-name">${escapeHtml(member.name)}${isCurrent ? ' (Вы)' : ''}</div>
-                                <div class="member-role">${member.role === 'parent' ? 'Родитель' : 'Ребёнок'}</div>
-                            </div>
-                        </div>
-                        <div class="online-dot ${isOnline ? '' : 'offline'}"></div>
-                    </div>
-                `;
-            });
-            
-            container.innerHTML = `
-                <div class="settings-card">
-                    <div class="settings-title">${escapeHtml(family?.name || 'Моя семья')}</div>
-                    
-                    <div class="settings-row">
-                        <div class="settings-label">Код приглашения</div>
-                        <div class="settings-value">
-                            <span class="invite-code" id="invite-code">${family?.invite_code || '—'}</span>
-                            <button class="copy-btn" id="copy-code">Копировать</button>
-                        </div>
-                    </div>
-                    
-                    <div class="settings-row">
-                        <div class="settings-label">Участники (${familyMembers.length})</div>
-                    </div>
-                    
-                    <div class="member-list" id="member-list">
-                        ${membersHtml}
-                    </div>
-                </div>
-            `;
-            
-            document.getElementById('copy-code')?.addEventListener('click', () => {
-                const code = family?.invite_code;
-                if (code) {
-                    navigator.clipboard.writeText(code);
-                    alert('✅ Код скопирован!');
-                }
-            });
-        }
-
+    container.innerHTML = `<div class="settings-card"><div class="settings-title">👨‍👩‍👧 ${escapeHtml(family?.name||'Моя семья')}</div><div class="settings-row"><div class="settings-label">Код приглашения</div><div class="settings-value"><span class="invite-code" id="invite-code">${family?.invite_code||'—'}</span><button class="copy-btn" id="copy-code">Копировать</button></div></div><div class="settings-row"><div class="settings-label">Участники (${familyMembers.length})</div></div><div class="member-list">${membersHtml}</div></div>`;
+    document.getElementById('copy-code')?.addEventListener('click',()=>{ if(family?.invite_code){navigator.clipboard.writeText(family.invite_code);alert('✅ Код скопирован!');} });
+}
 async function renderStats(container) {
-    // Показываем загрузку
-    container.innerHTML = `
-        <div class="settings-card">
-            <div class="settings-title">Моя статистика</div>
-            <div style="text-align: center; padding: 30px;">Загрузка статистики...</div>
-        </div>
-    `;
-    
+    container.innerHTML = `<div class="settings-card"><div class="settings-title">📊 Моя статистика</div><div style="text-align:center;padding:30px;">Загрузка...</div></div>`;
     try {
-        // Загружаем задания с сервера
-        const response = await fetch(`${API_URL}/tasks?`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        
-        if (!response.ok) throw new Error('Ошибка загрузки');
-        
-        const allTasks = await response.json();
-        
-        // Задания, назначенные текущему пользователю
-        const userTasks = allTasks.filter(t => t.assigned_to === currentUser?.id);
-        const completedTasks = userTasks.filter(t => t.status === 'completed');
-        const totalBonuses = completedTasks.reduce((sum, t) => sum + (t.bonus || 0), 0);
-        
-        // Загружаем желания
-        const wishesResponse = await fetch(`${API_URL}/wishes?`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const allWishes = await wishesResponse.json();
-        const userWishes = allWishes.filter(w => w.created_by === currentUser?.id);
-        const purchasedWishes = userWishes.filter(w => w.status === 'purchased');
-        
-        container.innerHTML = `
-            <div class="settings-card">
-                <div class="settings-title">📊 Моя статистика</div>
-                
-                <div class="stat-item">
-                    <span class="stat-label">📋 Всего заданий</span>
-                    <span class="stat-value">${userTasks.length}</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">✅ Выполнено заданий</span>
-                    <span class="stat-value">${completedTasks.length}</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">⏳ В ожидании</span>
-                    <span class="stat-value">${userTasks.length - completedTasks.length}</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">💰 Заработано бонусов</span>
-                    <span class="stat-value">${totalBonuses}</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">💎 Текущий баланс</span>
-                    <span class="stat-value">${currentUser?.bonuses || 0}</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">🎁 Создано желаний</span>
-                    <span class="stat-value">${userWishes.length}</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">🎉 Исполнено желаний</span>
-                    <span class="stat-value">${purchasedWishes.length}</span>
-                </div>
-            </div>
-            
-            <div class="settings-card">
-                <div class="settings-title">ℹ️ Информация об аккаунте</div>
-                <div class="stat-item">
-                    <span class="stat-label">ID пользователя</span>
-                    <span class="stat-value" style="font-size: 11px;">${currentUser?.id || '—'}</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Email</span>
-                    <span class="stat-value">${escapeHtml(currentUser?.email || '—')}</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Роль</span>
-                    <span class="stat-value">${currentUser?.role === 'parent' ? 'Родитель' : 'Ребёнок'}</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Дата регистрации</span>
-                    <span class="stat-value">${currentUser?.created_at ? new Date(currentUser.created_at).toLocaleDateString() : '—'}</span>
-                </div>
-            </div>
-        `;
-    } catch (error) {
-        console.error('Ошибка загрузки статистики:', error);
-        container.innerHTML = `
-            <div class="settings-card">
-                <div class="settings-title">Моя статистика</div>
-                <div style="text-align: center; padding: 30px; color: #e94560;">
-                    ❌ Ошибка загрузки статистики
-                </div>
-            </div>
-        `;
-    }
+        const [tRes,wRes] = await Promise.all([fetch(`${API_URL}/tasks?`,{headers:{'Authorization':`Bearer ${token}`}}),fetch(`${API_URL}/wishes?`,{headers:{'Authorization':`Bearer ${token}`}})]);
+        const tasks=await tRes.json(), wishes=await wRes.json();
+        const my=tasks.filter(t=>t.assigned_to===currentUser?.id), done=my.filter(t=>t.status==='completed');
+        const myW=wishes.filter(w=>w.created_by===currentUser?.id), bought=myW.filter(w=>w.status==='purchased');
+        container.innerHTML = `<div class="settings-card"><div class="settings-title">📊 Моя статистика</div>
+            <div class="stat-item"><span class="stat-label">📋 Всего заданий</span><span class="stat-value">${my.length}</span></div>
+            <div class="stat-item"><span class="stat-label">✅ Выполнено</span><span class="stat-value">${done.length}</span></div>
+            <div class="stat-item"><span class="stat-label">⏳ В ожидании</span><span class="stat-value">${my.length-done.length}</span></div>
+            <div class="stat-item"><span class="stat-label">💰 Заработано</span><span class="stat-value">${done.reduce((s,t)=>s+(t.bonus||0),0)}</span></div>
+            <div class="stat-item"><span class="stat-label">💎 Баланс</span><span class="stat-value">${currentUser?.bonuses||0}</span></div>
+            <div class="stat-item"><span class="stat-label">🎁 Желаний</span><span class="stat-value">${myW.length}</span></div>
+            <div class="stat-item"><span class="stat-label">🎉 Исполнено</span><span class="stat-value">${bought.length}</span></div></div>
+            <div class="settings-card"><div class="settings-title">ℹ️ Аккаунт</div>
+            <div class="stat-item"><span class="stat-label">ID</span><span class="stat-value" style="font-size:11px;">${currentUser?.id||'—'}</span></div>
+            <div class="stat-item"><span class="stat-label">Email</span><span class="stat-value">${escapeHtml(currentUser?.email||'—')}</span></div>
+            <div class="stat-item"><span class="stat-label">Роль</span><span class="stat-value">${currentUser?.role==='parent'?'Родитель':'Ребёнок'}</span></div></div>`;
+    } catch(e) { container.innerHTML = `<div class="settings-card"><div class="settings-title">📊 Статистика</div><div style="text-align:center;padding:30px;color:#e94560;">❌ Ошибка</div></div>`; }
+}
+async function onAvatarUpload(e) {
+    const file = e.target.files?.[0];
+    if(!file) return;
+    initAvatarCropper(file);
+}
+async function updateName(n) { currentUser.name=n; localStorage.setItem('homespace_currentUser',JSON.stringify(currentUser)); document.getElementById('user-name-display').textContent=n; alert('✅ Имя обновлено!'); }
+async function createFamily(name) {
+    try {
+        const r=await fetch(`${API_URL}/family/create`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify({name})});
+        if(!r.ok) throw new Error((await r.json()).error);
+        const d=await r.json();
+        if(d.token){localStorage.setItem('homespace_token',d.token);token=d.token;}
+        if(d.family){currentUser.familyId=d.family.id;localStorage.setItem('homespace_currentUser',JSON.stringify(currentUser));family=d.family;}
+        await loadFamilyMembers(); renderContent();
+        alert(`✅ Семья "${name}" создана! Код: ${d.family.invite_code}`);
+    } catch(e) { alert('❌ '+e.message); }
+}
+async function joinFamily(code) {
+    try {
+        const r=await fetch(`${API_URL}/family/join`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify({code:code.toUpperCase()})});
+        if(!r.ok) throw new Error((await r.json()).error);
+        const d=await r.json();
+        if(d.token){localStorage.setItem('homespace_token',d.token);token=d.token;}
+        if(d.family){currentUser.familyId=d.family.id;localStorage.setItem('homespace_currentUser',JSON.stringify(currentUser));family=d.family;}
+        await loadFamilyMembers(); renderContent();
+        alert(`✅ Вы присоединились к семье "${d.family.name}"!`);
+    } catch(e) { alert('❌ '+e.message); }
+}
+function logout() { localStorage.removeItem('homespace_token'); localStorage.removeItem('homespace_currentUser'); window.location.href='/'; }
+function setupEventListeners() {
+    document.querySelectorAll('.tab-btn').forEach(b=>b.addEventListener('click',()=>{currentTab=b.dataset.tab;document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderContent();}));
+    document.getElementById('logout-btn').onclick=()=>{if(confirm('Выйти из аккаунта?'))logout();};
+    document.getElementById('name-cancel').onclick=()=>document.getElementById('name-modal').classList.remove('active');
+    document.getElementById('name-save').onclick=()=>{const n=document.getElementById('new-name').value.trim();if(n){updateName(n);document.getElementById('name-modal').classList.remove('active');}};
+    document.getElementById('family-cancel').onclick=()=>document.getElementById('family-modal').classList.remove('active');
+    document.getElementById('family-save').onclick=()=>{const n=document.getElementById('family-name').value.trim();if(n){createFamily(n);document.getElementById('family-modal').classList.remove('active');}else alert('Введите название');};
+    document.getElementById('join-cancel').onclick=()=>document.getElementById('join-modal').classList.remove('active');
+    document.getElementById('join-save').onclick=()=>{const c=document.getElementById('join-code').value.trim();if(c){joinFamily(c);document.getElementById('join-modal').classList.remove('active');}else alert('Введите код');};
+    ['name-modal','family-modal','join-modal','avatar-crop-modal'].forEach(id=>{document.getElementById(id).onclick=(e)=>{if(e.target===document.getElementById(id))document.getElementById(id).classList.remove('active');};});
+}
+function escapeHtml(t){if(!t)return'';const d=document.createElement('div');d.textContent=t;return d.innerHTML;}
+function getAvatarHtml(avatar,name){
+    if(avatar&&avatar.startsWith('/assets/uploads/')) return `<img src="http://localhost:3001${escapeHtml(avatar)}" alt="avatar" style="width:36px;height:36px;border-radius:50%;object-fit:cover;">`;
+    const p=(name||'П').trim().split(/\s+/).slice(0,2);
+    return `<span style="font-size:12px;font-weight:700;">${escapeHtml(p.map(x=>x[0]?.toUpperCase()||'').join('')||'U')}</span>`;
+}
+function toggleTheme(){const c=localStorage.getItem('homespace_theme')||'dark';localStorage.setItem('homespace_theme',c==='dark'?'light':'dark');applyTheme();renderContent();}
+function applyTheme(){const t=localStorage.getItem('homespace_theme')||'dark';document.body.style.background=t==='light'?'linear-gradient(135deg,#f4f7fb 0%,#e7edf8 100%)':'linear-gradient(135deg,#1a1a2e 0%,#16213e 100%)';document.body.style.color=t==='light'?'#1f2937':'#ffffff';}
+// ========== КРОППЕР АВАТАРОВ (Canvas-based) ==========
+let cropperState = null;
+
+function toSquareDataUrl(file, size = 256) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            const img = new Image();
+            img.onload = () => {
+                const side = Math.min(img.width, img.height);
+                const sx = (img.width - side) / 2;
+                const sy = (img.height - side) / 2;
+                const canvas = document.createElement('canvas');
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
+                resolve(canvas.toDataURL('image/jpeg', 0.9));
+            };
+            img.onerror = reject;
+            img.src = reader.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
 }
 
-        async function onAvatarUpload(e) {
-            try {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                const imageData = await toSquareDataUrl(file, 256);
-                const response = await fetch(`${API_URL}/users/avatar`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ imageData })
-                });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.error || 'Ошибка загрузки');
-                currentUser.avatar = data.avatar;
-                localStorage.setItem('homespace_currentUser', JSON.stringify(currentUser));
-                document.getElementById('current-avatar').innerHTML = getAvatarHtml(currentUser.avatar, currentUser.name);
-                alert('Фото обновлено');
-            } catch (error) {
-                console.error('Ошибка обновления аватара:', error);
-            }
+function openCropper(file, outSize = 256) {
+    return new Promise((resolve, reject) => {
+        const modal = document.getElementById('avatar-crop-modal');
+        const canvas = document.getElementById('cropper-canvas');
+        const zoom = document.getElementById('cropper-zoom');
+        const btnCancel = document.getElementById('crop-cancel');
+        const btnApply = document.getElementById('crop-save');
+        if (!modal || !canvas || !zoom || !btnCancel || !btnApply) {
+            toSquareDataUrl(file, outSize).then(resolve).catch(reject);
+            return;
         }
 
-        async function updateName(newName) {
-            try {
-                currentUser.name = newName;
-                localStorage.setItem('homespace_currentUser', JSON.stringify(currentUser));
-                document.getElementById('user-name-display').textContent = newName;
-                alert('✅ Имя обновлено!');
-            } catch (error) {
-                console.error('Ошибка обновления имени:', error);
-            }
-        }
+        const ctx = canvas.getContext('2d');
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error('read error'));
+        reader.onload = () => {
+            const img = new Image();
+            img.onerror = () => reject(new Error('image error'));
+            img.onload = () => {
+                const cw = canvas.width;
+                const ch = canvas.height;
+                const baseScale = Math.max(cw / img.width, ch / img.height);
 
-        async function createFamily(name) {
-            try {
-                const response = await fetch(`${API_URL}/family/create`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ name })
-                });
-                
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error || 'Ошибка создания');
-                }
-                
-                const data = await response.json();
-                
-                if (data.token) {
-                    localStorage.setItem('homespace_token', data.token);
-                    token = data.token;
-                }
-                
-                if (data.family) {
-                    currentUser.familyId = data.family.id;
-                    localStorage.setItem('homespace_currentUser', JSON.stringify(currentUser));
-                    family = data.family;
-                }
-                
-                await loadFamilyMembers();
-                renderContent();
-                alert(`✅ Семья "${name}" создана! Код: ${data.family.invite_code}`);
-            } catch (error) {
-                console.error('Ошибка создания семьи:', error);
-                alert('❌ ' + error.message);
-            }
-        }
+                cropperState = {
+                    img,
+                    cw,
+                    ch,
+                    baseScale,
+                    zoom: 1,
+                    offsetX: 0,
+                    offsetY: 0,
+                    dragging: false,
+                    lastX: 0,
+                    lastY: 0
+                };
 
-        async function joinFamily(code) {
-            try {
-                const response = await fetch(`${API_URL}/family/join`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ code: code.toUpperCase() })
-                });
-                
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error || 'Ошибка присоединения');
-                }
-                
-                const data = await response.json();
-                
-                if (data.token) {
-                    localStorage.setItem('homespace_token', data.token);
-                    token = data.token;
-                }
-                
-                if (data.family) {
-                    currentUser.familyId = data.family.id;
-                    localStorage.setItem('homespace_currentUser', JSON.stringify(currentUser));
-                    family = data.family;
-                }
-                
-                await loadFamilyMembers();
-                renderContent();
-                alert(`✅ Вы присоединились к семье "${data.family.name}"!`);
-            } catch (error) {
-                console.error('Ошибка присоединения:', error);
-                alert('❌ ' + error.message);
-            }
-        }
+                zoom.value = '1';
 
-        function logout() {
-            localStorage.removeItem('homespace_token');
-            localStorage.removeItem('homespace_currentUser');
-            window.location.href = '/';
-        }
+                const draw = () => {
+                    if (!cropperState) return;
+                    const s = cropperState.baseScale * cropperState.zoom;
+                    const dw = img.width * s;
+                    const dh = img.height * s;
+                    let dx = (cw - dw) / 2 + cropperState.offsetX;
+                    let dy = (ch - dh) / 2 + cropperState.offsetY;
 
-        function setupEventListeners() {
-            // Вкладки
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    currentTab = btn.dataset.tab;
-                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    renderContent();
-                });
-            });
-            
-            // Выход
-            document.getElementById('logout-btn').onclick = () => {
-                if (confirm('Выйти из аккаунта?')) {
-                    logout();
-                }
-            };
-            
-            // Модальное окно имени
-            document.getElementById('name-cancel').onclick = () => {
-                document.getElementById('name-modal').classList.remove('active');
-            };
-            document.getElementById('name-save').onclick = () => {
-                const newName = document.getElementById('new-name').value.trim();
-                if (newName) {
-                    updateName(newName);
-                    document.getElementById('name-modal').classList.remove('active');
-                }
-            };
-            
-            // Модальное окно создания семьи
-            document.getElementById('family-cancel').onclick = () => {
-                document.getElementById('family-modal').classList.remove('active');
-            };
-            document.getElementById('family-save').onclick = () => {
-                const name = document.getElementById('family-name').value.trim();
-                if (name) {
-                    createFamily(name);
-                    document.getElementById('family-modal').classList.remove('active');
-                } else {
-                    alert('Введите название семьи');
-                }
-            };
-            
-            // Модальное окно присоединения
-            document.getElementById('join-cancel').onclick = () => {
-                document.getElementById('join-modal').classList.remove('active');
-            };
-            document.getElementById('join-save').onclick = () => {
-                const code = document.getElementById('join-code').value.trim();
-                if (code) {
-                    joinFamily(code);
-                    document.getElementById('join-modal').classList.remove('active');
-                } else {
-                    alert('Введите код приглашения');
-                }
-            };
-            
-            // Закрытие модалок по клику вне
-            const modals = ['name-modal', 'family-modal', 'join-modal'];
-            modals.forEach(modalId => {
-                document.getElementById(modalId).onclick = (e) => {
-                    if (e.target === document.getElementById(modalId)) {
-                        document.getElementById(modalId).classList.remove('active');
+                    const minDx = cw - dw;
+                    const minDy = ch - dh;
+                    dx = Math.min(0, Math.max(minDx, dx));
+                    dy = Math.min(0, Math.max(minDy, dy));
+                    cropperState.offsetX = dx - (cw - dw) / 2;
+                    cropperState.offsetY = dy - (ch - dh) / 2;
+
+                    ctx.clearRect(0, 0, cw, ch);
+                    ctx.drawImage(img, dx, dy, dw, dh);
+                };
+
+                const onPointerDown = (ev) => {
+                    ev.preventDefault();
+                    canvas.setPointerCapture?.(ev.pointerId);
+                    cropperState.dragging = true;
+                    cropperState.lastX = ev.clientX;
+                    cropperState.lastY = ev.clientY;
+                };
+                const onPointerMove = (ev) => {
+                    if (!cropperState?.dragging) return;
+                    ev.preventDefault();
+                    const dx = ev.clientX - cropperState.lastX;
+                    const dy = ev.clientY - cropperState.lastY;
+                    cropperState.lastX = ev.clientX;
+                    cropperState.lastY = ev.clientY;
+                    cropperState.offsetX += dx;
+                    cropperState.offsetY += dy;
+                    draw();
+                };
+                const onPointerUp = (ev) => {
+                    ev.preventDefault();
+                    cropperState.dragging = false;
+                };
+
+                const cleanup = () => {
+                    canvas.removeEventListener('pointerdown', onPointerDown);
+                    canvas.removeEventListener('pointermove', onPointerMove);
+                    canvas.removeEventListener('pointerup', onPointerUp);
+                    canvas.removeEventListener('pointercancel', onPointerUp);
+                    zoom.oninput = null;
+                    btnCancel.onclick = null;
+                    btnApply.onclick = null;
+                    modal.onclick = null;
+                    cropperState = null;
+                    modal.classList.remove('active');
+                };
+
+                canvas.addEventListener('pointerdown', onPointerDown);
+                canvas.addEventListener('pointermove', onPointerMove);
+                canvas.addEventListener('pointerup', onPointerUp);
+                canvas.addEventListener('pointercancel', onPointerUp);
+
+                zoom.oninput = () => {
+                    if (!cropperState) return;
+                    cropperState.zoom = Math.max(1, Math.min(3, Number(zoom.value) || 1));
+                    draw();
+                };
+
+                btnCancel.onclick = () => {
+                    cleanup();
+                    reject(new Error('cancelled'));
+                };
+                btnApply.onclick = () => {
+                    try {
+                        const out = document.createElement('canvas');
+                        out.width = outSize;
+                        out.height = outSize;
+                        const octx = out.getContext('2d');
+                        octx.drawImage(canvas, 0, 0, outSize, outSize);
+                        const dataUrl = out.toDataURL('image/jpeg', 0.9);
+                        cleanup();
+                        resolve(dataUrl);
+                    } catch (e) {
+                        cleanup();
+                        reject(e);
                     }
                 };
-            });
-        }
 
-        function escapeHtml(text) {
-            if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        function getAvatarHtml(avatar, name) {
-            if (avatar && avatar.startsWith('/assets/uploads/')) {
-                return `<img src="${escapeHtml(avatar)}" alt="avatar" style="width:36px;height:36px;border-radius:50%;object-fit:cover;">`;
-            }
-            const base = (name || 'П').trim();
-            const parts = base.split(/\s+/).filter(Boolean).slice(0, 2);
-            const initials = parts.map(p => p[0]?.toUpperCase() || '').join('') || 'U';
-            return `<span style="font-size:12px;font-weight:700;">${escapeHtml(initials)}</span>`;
-        }
-
-        function toSquareDataUrl(file, size = 256) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => {
-                    const img = new Image();
-                    img.onload = () => {
-                        const side = Math.min(img.width, img.height);
-                        const sx = (img.width - side) / 2;
-                        const sy = (img.height - side) / 2;
-                        const canvas = document.createElement('canvas');
-                        canvas.width = size;
-                        canvas.height = size;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
-                        resolve(canvas.toDataURL('image/jpeg', 0.9));
-                    };
-                    img.onerror = reject;
-                    img.src = reader.result;
+                modal.onclick = (e) => {
+                    if (e.target === modal) {
+                        cleanup();
+                        reject(new Error('cancelled'));
+                    }
                 };
-                reader.onerror = reject;
-                reader.readAsDataURL(file);
-            });
-        }
 
-        function toggleTheme() {
-            const current = localStorage.getItem('homespace_theme') || 'dark';
-            const next = current === 'dark' ? 'light' : 'dark';
-            localStorage.setItem('homespace_theme', next);
-            applyTheme();
-            renderContent();
-        }
+                modal.classList.add('active');
+                draw();
+            };
+            img.src = reader.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
 
-        function applyTheme() {
-            const theme = localStorage.getItem('homespace_theme') || 'dark';
-            if (theme === 'light') {
-                document.body.style.background = 'linear-gradient(135deg, #f4f7fb 0%, #e7edf8 100%)';
-                document.body.style.color = '#1f2937';
-            } else {
-                document.body.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)';
-                document.body.style.color = '#ffffff';
-            }
+function initAvatarCropper(file) {
+    openCropper(file, 256).then(imageData => {
+        uploadCroppedAvatar(imageData);
+    }).catch(err => {
+        if (err.message !== 'cancelled') {
+            console.error('Cropper error:', err);
+            alert('❌ Ошибка при обработке фото');
         }
+    });
+}
 
-        // Запуск
-        applyTheme();
-        init();
-    </script>
+async function uploadCroppedAvatar(imageData) {
+    try {
+        const r = await fetch('http://localhost:3001/api/users/avatar', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('homespace_token')}`
+            },
+            body: JSON.stringify({ imageData })
+        });
+        if (r.ok) {
+            const d = await r.json();
+            currentUser.avatar = d.avatar;
+            localStorage.setItem('homespace_currentUser', JSON.stringify(currentUser));
+            document.getElementById('current-avatar').innerHTML = getAvatarHtml(currentUser.avatar, currentUser.name);
+            alert('✅ Фото обновлено!');
+        }
+    } catch(e) { alert('❌ Ошибка загрузки'); }
+}
+
+applyTheme();
+init();
+</script>
 </body>
 </html>

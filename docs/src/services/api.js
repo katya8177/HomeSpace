@@ -182,6 +182,7 @@ class ApiService {
     }
 
 async createTask(taskData) {
+    console.log('📤 api.createTask получил:', JSON.stringify(taskData)); // ← ДОБАВЬ ЭТО
     try {
         const response = await fetch(`${this.baseUrl}/tasks`, {
             method: 'POST',
@@ -192,7 +193,7 @@ async createTask(taskData) {
                 bonus: taskData.bonus,
                 assignedTo: taskData.assignedTo,
                 itemKey: taskData.itemKey,
-                itemInstanceId: taskData.itemInstanceId  // <-- ДОБАВЛЯЕМ
+                itemInstanceId: taskData.itemInstanceId
             })
         });
         return await this.handleResponse(response);
@@ -201,6 +202,32 @@ async createTask(taskData) {
         throw error;
     }
 }
+
+    // ========== АВТОЗАДАНИЯ (TASK SCHEDULES) ==========
+    async getTaskSchedules() {
+        const response = await fetch(`${this.baseUrl}/task-schedules`, {
+            method: 'GET',
+            headers: this.getHeaders()
+        });
+        return await this.handleResponse(response);
+    }
+
+    async createTaskSchedule(scheduleData) {
+        const response = await fetch(`${this.baseUrl}/task-schedules`, {
+            method: 'POST',
+            headers: this.getHeaders(),
+            body: JSON.stringify(scheduleData)
+        });
+        return await this.handleResponse(response);
+    }
+
+    async deleteTaskSchedule(scheduleId) {
+        const response = await fetch(`${this.baseUrl}/task-schedules/${scheduleId}`, {
+            method: 'DELETE',
+            headers: this.getHeaders()
+        });
+        return await this.handleResponse(response);
+    }
 
     async completeTask(taskId) {
         try {

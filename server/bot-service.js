@@ -50,7 +50,7 @@ async function ensureBotExists() {
             console.log('✅ [БОТ] Бот уже существует');
         }
     } catch (error) {
-        console.error('❌ [БОТ] Ошибка создания бота:', error.message);
+        console.error(' [БОТ] Ошибка создания бота:', error.message);
     }
 }
 
@@ -73,7 +73,7 @@ async function getNewEvents() {
         for (const task of newTasks) {
             events.push({
                 familyId: task.family_id,
-                message: `📋 **${task.created_name}** создал(а) задание **"${task.title}"** для **${task.assigned_name}**\n💰 Награда: ${task.bonus} бонусов`
+                message: `${task.created_name} создал(а) задание "${task.title}" для ${task.assigned_name}\n Награда: ${task.bonus} бонусов`
             });
         }
         
@@ -90,7 +90,7 @@ async function getNewEvents() {
         for (const task of completedTasks) {
             events.push({
                 familyId: task.family_id,
-                message: `✅ **${task.completed_name}** выполнил(а) **"${task.title}"** и получил(а) **${task.bonus}** бонусов! 🎉`
+                message: `${task.completed_name} выполнил(а) "${task.title}" и получил(а) ${task.bonus} бонусов! `
             });
         }
         
@@ -105,7 +105,7 @@ async function getNewEvents() {
         for (const wish of pendingWishes) {
             events.push({
                 familyId: wish.family_id,
-                message: `🎁 **${wish.created_name}** хочет: **"${wish.title}"**\n💰 Цена: ${wish.price} бонусов\n⏳ Требуется одобрение родителя`
+                message: `${wish.created_name} хочет: "${wish.title}"\n Цена: ${wish.price} бонусов\n Требуется одобрение родителя`
             });
         }
         
@@ -122,7 +122,7 @@ async function getNewEvents() {
         for (const wish of approvedWishes) {
             events.push({
                 familyId: wish.family_id,
-                message: `✅ **${wish.approved_name}** одобрил(а) желание **"${wish.title}"**!\n💰 Цена: ${wish.approved_price} бонусов`
+                message: `${wish.approved_name} одобрил(а) желание "${wish.title}"!\n Цена: ${wish.approved_price} бонусов`
             });
         }
         
@@ -139,7 +139,7 @@ async function getNewEvents() {
         for (const wish of purchasedWishes) {
             events.push({
                 familyId: wish.family_id,
-                message: `🎉 **${wish.purchased_name}** купил(а) **"${wish.title}"** за **${wish.approved_price}** бонусов!`
+                message: `${wish.purchased_name} купил(а) "${wish.title}" за ${wish.approved_price} бонусов!`
             });
         }
         
@@ -153,12 +153,12 @@ async function getNewEvents() {
         for (const member of newMembers) {
             events.push({
                 familyId: member.family_id,
-                message: `👋 **${member.name}** присоединился(ась) к семье! Добро пожаловать! 🏠`
+                message: `${member.name} присоединился(ась) к семье! Добро пожаловать! `
             });
         }
         
     } catch (error) {
-        console.error('❌ [БОТ] Ошибка получения событий:', error.message);
+        console.error(' [БОТ] Ошибка получения событий:', error.message);
     }
     
     return events;
