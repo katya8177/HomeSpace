@@ -384,6 +384,49 @@ async createTask(taskData) {
         }
     }
 
+    // ========== РЕДАКТИРОВАНИЕ И УДАЛЕНИЕ СООБЩЕНИЙ ==========
+    async editMessage(messageId, newMessage) {
+        try {
+            const response = await fetch(`${this.baseUrl}/chat/${messageId}`, {
+                method: 'PATCH',
+                headers: this.getHeaders(),
+                body: JSON.stringify({ message: newMessage })
+            });
+            
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Ошибка редактирования');
+            }
+            
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error('Ошибка редактирования сообщения:', error);
+            throw error;
+        }
+    }
+
+    async deleteMessage(messageId, deleteForAll = false) {
+        try {
+            const response = await fetch(`${this.baseUrl}/chat/${messageId}`, {
+                method: 'DELETE',
+                headers: this.getHeaders(),
+                body: JSON.stringify({ deleteForAll })
+            });
+            
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Ошибка удаления');
+            }
+            
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error('Ошибка удаления сообщения:', error);
+            throw error;
+        }
+    }
+
     // ========== КОМНАТЫ (ROOMS) ==========
     async getMyRooms() {
         try {

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>HomeSpace - Задания</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -14,7 +15,7 @@
 
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            background: linear-gradient(135deg, #dcecff 0%, #d3e7ff 100%);
             min-height: 100vh;
             position: relative;
         }
@@ -24,7 +25,7 @@
             position: absolute;
             width: 100%;
             height: 100%;
-            background: radial-gradient(circle at 20% 50%, rgba(78, 204, 163, 0.1) 0%, transparent 50%);
+            background: radial-gradient(circle at 20% 50%, rgba(137, 207, 240, 0.2) 0%, transparent 55%);
             animation: pulse 8s ease-in-out infinite;
         }
 
@@ -41,17 +42,16 @@
             z-index: 10;
         }
 
-        /* Кнопка назад */
         .back-btn {
             position: fixed;
             top: 20px;
             left: 20px;
-            background: rgba(0, 0, 0, 0.6);
+            background: rgba(244, 250, 255, 0.95);
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(78, 204, 163, 0.5);
+            border: 1px solid rgba(137, 207, 240, 0.6);
             border-radius: 40px;
             padding: 10px 20px;
-            color: white;
+            color: #33465d;
             font-size: 16px;
             font-weight: 500;
             cursor: pointer;
@@ -63,12 +63,11 @@
         }
 
         .back-btn:hover {
-            background: rgba(78, 204, 163, 0.3);
-            border-color: #4ecca3;
+            background: rgba(168, 216, 255, 0.3);
+            border-color: #72bde8;
             transform: translateX(-3px);
         }
 
-        /* Заголовок */
         .header {
             text-align: center;
             padding: 40px 0 30px;
@@ -77,20 +76,19 @@
         .header h1 {
             font-size: 48px;
             font-weight: 800;
-            background: linear-gradient(135deg, #ffd700, #4ecca3);
+            background: linear-gradient(135deg, #4f6988, #33465d);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             text-shadow: 0 2px 10px rgba(0,0,0,0.2);
         }
 
         .header p {
-            color: rgba(255, 255, 255, 0.7);
+            color: rgba(51, 70, 93, 0.8);
             margin-top: 10px;
         }
 
-        /* Панель статистики */
         .stats-panel {
-            background: rgba(15, 15, 26, 0.8);
+            background: rgba(226, 240, 255, 0.95);
             backdrop-filter: blur(10px);
             border-radius: 20px;
             padding: 20px;
@@ -99,13 +97,13 @@
             justify-content: space-around;
             flex-wrap: wrap;
             gap: 15px;
-            border: 1px solid rgba(78, 204, 163, 0.3);
+            border: 1px solid rgba(137, 207, 240, 0.55);
         }
 
         .stat-card {
             text-align: center;
             padding: 15px 25px;
-            background: rgba(0, 0, 0, 0.3);
+            background: rgba(211, 231, 255, 0.72);
             border-radius: 15px;
             min-width: 120px;
         }
@@ -113,16 +111,15 @@
         .stat-value {
             font-size: 32px;
             font-weight: 800;
-            color: #ffd700;
+            color: #33465d;
         }
 
         .stat-label {
             font-size: 12px;
-            color: rgba(255, 255, 255, 0.6);
+            color: rgba(51, 70, 93, 0.7);
             margin-top: 5px;
         }
 
-        /* Фильтры */
         .filters {
             display: flex;
             gap: 10px;
@@ -130,24 +127,25 @@
             flex-wrap: wrap;
             justify-content: center;
         }
+        
         .search-row { display:flex; justify-content:center; margin-bottom: 15px; }
-        .search-input { width:min(560px, 100%); padding:10px 14px; border-radius: 12px; border:1px solid rgba(78,204,163,.4); background: rgba(0,0,0,.35); color:#fff; }
+        .search-input { width:min(560px, 100%); padding:10px 14px; border-radius: 12px; border:1px solid rgba(137,207,240,.55); background: rgba(248,252,255,.95); color:#33465d; }
         .subtasks { margin-top:8px; display:flex; flex-direction:column; gap:4px; }
-        .subtask-item { font-size:12px; color:#ddd; }
+        .subtask-item { font-size:12px; color:#33465d; display:flex; align-items:center; gap:6px; }
 
         .filter-btn {
-            background: rgba(44, 62, 80, 0.8);
-            border: 1px solid rgba(78, 204, 163, 0.3);
+            background: rgba(230, 242, 255, 0.95);
+            border: 1px solid rgba(137, 207, 240, 0.5);
             padding: 10px 24px;
             border-radius: 40px;
-            color: white;
+            color: #33465d;
             font-size: 14px;
             cursor: pointer;
             transition: all 0.2s ease;
         }
 
         .filter-btn.active {
-            background: linear-gradient(135deg, #4ecca3, #3ba87f);
+            background: rgba(168, 216, 255, 0.42);
             border-color: transparent;
         }
 
@@ -155,13 +153,12 @@
             transform: translateY(-2px);
         }
 
-        /* Кнопка создания задания */
         .create-task-btn {
-            background: linear-gradient(135deg, #0865fa, #07488d);
+            background: linear-gradient(135deg, #a8d8ff, #89cff0);
             border: none;
             padding: 12px 30px;
             border-radius: 40px;
-            color: white;
+            color: #33465d;
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
@@ -174,10 +171,9 @@
 
         .create-task-btn:hover {
             transform: scale(1.02);
-            box-shadow: 0 5px 20px rgba(8, 101, 250, 0.4);
+            box-shadow: 0 5px 20px rgba(114, 189, 232, 0.4);
         }
 
-        /* Список заданий */
         .tasks-list {
             display: flex;
             flex-direction: column;
@@ -185,7 +181,7 @@
         }
 
         .task-card {
-            background: rgba(15, 15, 26, 0.8);
+            background: rgba(226, 240, 255, 0.95);
             backdrop-filter: blur(10px);
             border-radius: 20px;
             padding: 20px;
@@ -194,13 +190,23 @@
             align-items: center;
             flex-wrap: wrap;
             gap: 15px;
-            border: 1px solid rgba(78, 204, 163, 0.2);
+            border: 1px solid rgba(137, 207, 240, 0.5);
             transition: all 0.2s ease;
         }
 
         .task-card.completed {
-            border-color: #4ecca3;
-            background: rgba(78, 204, 163, 0.1);
+            border-color: #72bde8;
+            background: rgba(168, 216, 255, 0.28);
+        }
+
+        .task-card.auto-task {
+            border-left: 4px solid #ff9800;
+            background: rgba(255, 152, 0, 0.08);
+        }
+
+        .task-card.scheduled-task {
+            border-left: 4px solid #4caf50;
+            background: rgba(76, 175, 80, 0.08);
         }
 
         .task-info {
@@ -210,28 +216,45 @@
         .task-title {
             font-size: 18px;
             font-weight: 600;
-            color: white;
+            color: #33465d;
             display: flex;
             align-items: center;
             gap: 10px;
+            flex-wrap: wrap;
         }
 
         .task-status {
             font-size: 12px;
             padding: 3px 8px;
             border-radius: 20px;
-            background: rgba(233, 69, 96, 0.2);
-            color: #e94560;
+            background: rgba(168, 216, 255, 0.32);
+            color: #33465d;
         }
 
         .task-status.completed {
-            background: rgba(78, 204, 163, 0.2);
-            color: #4ecca3;
+            background: rgba(137, 207, 240, 0.35);
+            color: #33465d;
+        }
+
+        .task-badge-auto {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 20px;
+            background: #ff9800;
+            color: white;
+        }
+
+        .task-badge-scheduled {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 20px;
+            background: #4caf50;
+            color: white;
         }
 
         .task-description {
             font-size: 13px;
-            color: rgba(255, 255, 255, 0.6);
+            color: rgba(51, 70, 93, 0.72);
             margin-top: 5px;
         }
 
@@ -240,14 +263,15 @@
             gap: 20px;
             margin-top: 8px;
             font-size: 12px;
-            color: rgba(255, 255, 255, 0.5);
+            color: rgba(51, 70, 93, 0.62);
+            flex-wrap: wrap;
         }
 
         .task-bonus {
-            background: rgba(255, 215, 0, 0.2);
+            background: rgba(168, 216, 255, 0.38);
             padding: 4px 10px;
             border-radius: 20px;
-            color: #ffd700;
+            color: #33465d;
             font-weight: 600;
         }
 
@@ -263,11 +287,11 @@
         }
 
         .complete-btn {
-            background: linear-gradient(135deg, #4ecca3, #3ba87f);
+            background: linear-gradient(135deg, #a8d8ff, #89cff0);
             border: none;
             padding: 8px 20px;
             border-radius: 30px;
-            color: white;
+            color: #33465d;
             font-size: 14px;
             cursor: pointer;
             transition: all 0.2s ease;
@@ -278,26 +302,26 @@
         }
 
         .delete-btn {
-            background: rgba(233, 69, 96, 0.2);
-            border: 1px solid #e94560;
+            background: rgba(201, 228, 255, 0.65);
+            border: 1px solid #72bde8;
             padding: 8px 20px;
             border-radius: 30px;
-            color: #e94560;
+            color: #33465d;
             font-size: 14px;
             cursor: pointer;
             transition: all 0.2s ease;
         }
 
         .delete-btn:hover {
-            background: rgba(233, 69, 96, 0.4);
+            background: rgba(168, 216, 255, 0.45);
         }
 
         .empty-state {
             text-align: center;
             padding: 60px;
-            background: rgba(15, 15, 26, 0.6);
+            background: rgba(226, 240, 255, 0.88);
             border-radius: 20px;
-            color: rgba(255, 255, 255, 0.5);
+            color: rgba(51, 70, 93, 0.72);
         }
 
         .empty-state-icon {
@@ -305,7 +329,25 @@
             margin-bottom: 15px;
         }
 
-        /* Модальное окно */
+        .notification-toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #33465d, #1a2a3a);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 12px;
+            z-index: 10000;
+            animation: slideIn 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            max-width: 350px;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
         .modal {
             display: none;
             position: fixed;
@@ -313,7 +355,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(49, 67, 89, 0.35);
             z-index: 1000;
             justify-content: center;
             align-items: center;
@@ -324,17 +366,17 @@
         }
 
         .modal-content {
-            background: rgba(26, 26, 46, 0.95);
+            background: rgba(226, 240, 255, 0.96);
             backdrop-filter: blur(10px);
             border-radius: 30px;
             padding: 30px;
             max-width: 500px;
             width: 90%;
-            border: 1px solid rgba(78, 204, 163, 0.5);
+            border: 1px solid rgba(137, 207, 240, 0.6);
         }
 
         .modal-content h3 {
-            color: white;
+            color: #33465d;
             font-size: 24px;
             margin-bottom: 20px;
         }
@@ -345,10 +387,10 @@
             width: 100%;
             padding: 12px 15px;
             margin-bottom: 15px;
-            background: rgba(44, 62, 80, 0.8);
-            border: 1px solid rgba(78, 204, 163, 0.3);
+            background: rgba(248, 252, 255, 0.95);
+            border: 1px solid rgba(137, 207, 240, 0.55);
             border-radius: 12px;
-            color: white;
+            color: #33465d;
             font-size: 14px;
             font-family: 'Inter', sans-serif;
         }
@@ -362,7 +404,7 @@
         .modal-content textarea:focus,
         .modal-content select:focus {
             outline: none;
-            border-color: #4ecca3;
+            border-color: #72bde8;
         }
 
         .bonus-control {
@@ -382,9 +424,9 @@
             width: 40px;
             height: 40px;
             border-radius: 50%;
-            background: rgba(78, 204, 163, 0.2);
-            border: 1px solid #4ecca3;
-            color: #4ecca3;
+            background: rgba(168, 216, 255, 0.35);
+            border: 1px solid #72bde8;
+            color: #33465d;
             font-size: 20px;
             cursor: pointer;
         }
@@ -403,15 +445,15 @@
         }
 
         .modal-save {
-            background: #4ecca3;
+            background: #89cff0;
             border: none;
-            color: white;
+            color: #33465d;
         }
 
         .modal-cancel {
-            background: rgba(233, 69, 96, 0.2);
-            border: 1px solid #e94560;
-            color: #e94560;
+            background: rgba(201, 228, 255, 0.6);
+            border: 1px solid #72bde8;
+            color: #33465d;
         }
 
         @media (max-width: 768px) {
@@ -439,26 +481,11 @@
             .modal-content h3 { font-size: 20px; margin-bottom: 14px; }
             .modal-content textarea { min-height: 60px; }
         }
-
-        @media (max-width: 360px) {
-            .modal-content {
-                border-radius: 20px;
-                padding: 18px;
-            }
-            .modal-content input,
-            .modal-content textarea,
-            .modal-content select {
-                padding: 10px 12px;
-                margin-bottom: 12px;
-                font-size: 13px;
-            }
-            .bonus-btn { width: 36px; height: 36px; font-size: 18px; }
-        }
     </style>
 </head>
 <body>
- <div style="display: flex; gap: 10px; position: fixed; top: 20px; left: 20px; z-index: 100;">
-        <button class="back-btn" id="menu-btn" onclick="window.location.href='/'">
+    <div style="display: flex; gap: 10px; position: fixed; top: 20px; left: 20px; z-index: 100;">
+        <button class="back-btn" onclick="window.location.href='/'">
             ← Назад в меню
         </button>
     </div>
@@ -507,14 +534,9 @@
             </button>
         </div>
 
-        <div class="stats-card" id="schedules-card" style="margin-top: 15px; display:none;">
-            <h3>⏰ Автозадания</h3>
-            <div id="schedules-list" style="margin-top:10px; display:flex; flex-direction:column; gap:10px;"></div>
-        </div>
-
         <div class="tasks-list" id="tasks-list">
             <div class="empty-state">
-                <div class="empty-state-icon">Список</div>
+                <div class="empty-state-icon">📋</div>
                 <div>Загрузка заданий...</div>
             </div>
         </div>
@@ -527,7 +549,7 @@
             <input type="text" id="task-title" placeholder="Название задания" autocomplete="off">
             <textarea id="task-description" placeholder="Описание (необязательно)"></textarea>
             <div class="bonus-control">
-                <span style="color:white;">Бонус:</span>
+                <span style="color:#33465d;">Бонус:</span>
                 <button class="bonus-btn" id="bonus-minus">-</button>
                 <input type="number" id="task-bonus" value="10" min="1" max="100">
                 <button class="bonus-btn" id="bonus-plus">+</button>
@@ -536,7 +558,7 @@
                 <option value="">— Не назначено —</option>
             </select>
             <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08);">
-                <div style="color: rgba(255,255,255,0.85); font-weight: 700; margin-bottom: 8px;">⏰ Автоматически повторять</div>
+                <div style="color: rgba(51,70,93,0.9); font-weight: 700; margin-bottom: 8px;">⏰ Автоматически повторять</div>
                 <select id="task-recurrence" style="margin-bottom: 10px;">
                     <option value="none">Не повторять</option>
                     <option value="daily">Каждый день</option>
@@ -544,24 +566,9 @@
                     <option value="once">Один раз (дата)</option>
                 </select>
                 <input id="task-time" type="time" value="09:00" style="margin-bottom: 10px;">
-                <div id="task-dows" style="display:none; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
-                    ${[
-                        { v: 1, t: 'Пн' },
-                        { v: 2, t: 'Вт' },
-                        { v: 3, t: 'Ср' },
-                        { v: 4, t: 'Чт' },
-                        { v: 5, t: 'Пт' },
-                        { v: 6, t: 'Сб' },
-                        { v: 0, t: 'Вс' }
-                    ].map(d => `
-                        <label style="display:inline-flex; align-items:center; gap:8px; padding:10px 12px; border-radius:999px; border:1px solid rgba(255,255,255,0.14); background: rgba(44, 62, 80, 0.55); cursor:pointer; font-size:14px; color:#fff;">
-                            <input type="checkbox" data-dow="${d.v}" style="width:16px; height:16px; accent-color:#4ecca3;">
-                            <span>${d.t}</span>
-                        </label>
-                    `).join('')}
-                </div>
+                <div id="task-dows" style="display:none; flex-wrap:wrap; gap:8px; margin-bottom:10px;"></div>
                 <input id="task-runat" type="datetime-local" style="display:none; margin-bottom: 10px;">
-                <div style="color: rgba(255,255,255,0.55); font-size: 12px; line-height: 1.35;">
+                <div style="color: rgba(51,70,93,0.72); font-size: 12px; line-height: 1.35;">
                     Если выбрать повтор — задания будут появляться автоматически по расписанию.
                 </div>
             </div>
@@ -572,266 +579,165 @@
         </div>
     </div>
 
-<script>
-    const API_URL = 'http://localhost:3001/api';
-    let token = localStorage.getItem('homespace_token');
-    let currentUser = null;
-    let tasks = [];
-    let familyMembers = [];
-    let schedules = [];
-    let currentFilter = 'all';
-    let searchQuery = '';
-    let subtasksStore = {};
-    const urlParams = new URLSearchParams(window.location.search);
-    const presetItemKey = urlParams.get('itemKey');
-    const presetItemName = urlParams.get('itemName');
-    const readOnly = urlParams.get('readonly') === 'true';
-
-if (readOnly) {
-    const createBtn = document.getElementById('create-task-btn');
-    if (createBtn) createBtn.style.display = 'none';
-    const header = document.querySelector('.header h1');
-    if (header) header.textContent = '📋 Список заданий (только просмотр)';
-    document.title = 'Просмотр заданий - HomeSpace';
-}
-
-if (presetItemKey) {
-    setTimeout(() => {
-        const itemField = document.getElementById('task-item');
-        if (itemField) {
-            itemField.value = presetItemKey;
-            itemField.readOnly = true;
-        }
-    }, 500);
-}
-
-    function closeWebView() {
-        if (window.parent && window.parent !== window) {
-            window.parent.postMessage('close-webview', '*');
-        } else {
-            window.location.href = '/';
-        }
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-        const closeBtn = document.getElementById('close-btn');
-        if (closeBtn) {
-            closeBtn.onclick = closeWebView;
-        }
-    });
-
-    function handleResize() {
-        if (window.parent && window.parent !== window) {
-            window.parent.postMessage('ready', '*');
-        }
-        const container = document.querySelector('.container');
-        if (container && window.innerWidth < 768) {
-            container.style.padding = '15px';
-        }
-    }
-
-    window.addEventListener('message', (event) => {
-        if (event.data && event.data.type === 'resize') {
-            document.body.style.margin = '0';
-            document.body.style.padding = '0';
-        }
-    });
-
-    window.addEventListener('load', handleResize);
-    window.addEventListener('resize', handleResize);
-    handleResize();
-
-    // Инициализация
-    async function init() {
-        try { subtasksStore = JSON.parse(localStorage.getItem('homespace_subtasks') || '{}'); } catch { subtasksStore = {}; }
-        await loadCurrentUser();
-        if (!token || !currentUser) {
-            window.location.href = '/';
-            return;
+    <script>
+        const API_URL = 'http://localhost:3001/api';
+        let token = localStorage.getItem('homespace_token');
+        let currentUser = null;
+        let tasks = [];
+        let allRealTasks = [];
+        let familyMembers = [];
+        let schedules = [];
+        let currentFilter = 'all';
+        let searchQuery = '';
+        let subtasksStore = {};
+        let socket = null;
+        
+        function connectNotificationSocket() {
+            if (!token) return;
+            socket = io('http://localhost:3001', { withCredentials: true });
+            socket.on('connect', () => {
+                console.log('🔌 Подключен к серверу уведомлений');
+                if (currentUser?.id) {
+                    socket.emit('join-user', currentUser.id);
+                }
+            });
+            socket.on('new-task-notification', (data) => {
+                console.log('🔔 Новое уведомление:', data);
+                showNotificationToast(data.title, data.message);
+                loadTasks();
+            });
         }
         
-        updateCreateTaskButton();
-        updateAssignSelect();  // <--- ДОБАВИЛИ!
-        
-        await loadFamilyMembers();
-        await loadTasks();
-        await loadSchedules();
-        setupEventListeners();
-    }
-
-    async function loadSchedules() {
-        try {
-            const response = await fetch(`${API_URL}/task-schedules`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (!response.ok) return;
-            schedules = await response.json();
-            renderSchedules();
-        } catch {
-            schedules = [];
-            renderSchedules();
-        }
-    }
-
-    function fmtSchedule(s) {
-        const map = { daily: 'каждый день', weekly: 'по дням недели', once: 'один раз' };
-        const type = s.schedule_type || s.scheduleType || s.recurrence;
-        if (type === 'once') {
-            const dt = s.run_at || s.runAt || '';
-            return `${map.once}: ${String(dt).replace('T',' ').slice(0,16)}`;
-        }
-        if (type === 'weekly') {
-            const names = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
-            let days = [];
-            try {
-                const raw = s.days_of_week_json || s.daysOfWeek;
-                days = Array.isArray(raw) ? raw : (raw ? JSON.parse(raw) : []);
-            } catch { days = []; }
-            const human = (days || []).map(d => names[Number(d) || 0]).join(', ') || '—';
-            return `${map.weekly} (${human}) в ${s.time_of_day || s.timeOfDay}`;
-        }
-        return `${map[type] || type} в ${s.time_of_day || s.timeOfDay}`;
-    }
-
-    function renderSchedules() {
-        const card = document.getElementById('schedules-card');
-        const list = document.getElementById('schedules-list');
-        if (!card || !list) return;
-
-        if (!schedules || schedules.length === 0) {
-            card.style.display = 'none';
-            return;
-        }
-        card.style.display = 'block';
-        list.innerHTML = schedules.map(s => `
-            <div style="background: rgba(15, 15, 26, 0.6); border-radius: 16px; padding: 12px; border: 1px solid rgba(78, 204, 163, 0.25);">
-                <div style="display:flex; justify-content: space-between; gap: 10px; align-items: flex-start;">
-                    <div style="flex:1; min-width:0;">
-                        <div style="color:#fff; font-weight:800; font-size:14px; overflow:hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(s.title || 'Автозадание')}</div>
-                        <div style="color: rgba(255,255,255,0.65); font-size: 12px; margin-top: 4px;">${escapeHtml(fmtSchedule(s))}</div>
-                        <div style="color: rgba(255,255,255,0.45); font-size: 11px; margin-top: 6px;">Следующее: ${escapeHtml((s.next_run_at || '').replace('T',' ').slice(0,16))}</div>
-                    </div>
-                    <button class="delete-btn" data-schedule-id="${escapeHtml(s.id)}" style="padding: 7px 14px; font-size: 12px;">Удалить</button>
-                </div>
-            </div>
-        `).join('');
-
-        list.querySelectorAll('[data-schedule-id]').forEach(btn => {
-            btn.addEventListener('click', () => deleteSchedule(btn.dataset.scheduleId));
-        });
-    }
-
-    async function deleteSchedule(scheduleId) {
-        if (!confirm('Удалить автозадание?')) return;
-        try {
-            const response = await fetch(`${API_URL}/task-schedules/${scheduleId}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'Ошибка удаления');
+        function showNotificationToast(title, message) {
+            const toast = document.createElement('div');
+            toast.className = 'notification-toast';
+            toast.innerHTML = `<div style="font-weight: bold; margin-bottom: 5px;">📋 ${title}</div><div style="font-size: 13px;">${message}</div>`;
+            document.body.appendChild(toast);
+            if (Notification.permission === 'granted') {
+                new Notification('Новое задание!', { body: message, icon: '/assets/icon.png' });
             }
+            setTimeout(() => toast.remove(), 5000);
+        }
+        
+        async function requestNotificationPermission() {
+            if ('Notification' in window && Notification.permission !== 'granted') {
+                await Notification.requestPermission();
+            }
+        }
+        
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        async function init() {
+            try { subtasksStore = JSON.parse(localStorage.getItem('homespace_subtasks') || '{}'); } catch { subtasksStore = {}; }
+            await loadCurrentUser();
+            if (!token || !currentUser) {
+                window.location.href = '/';
+                return;
+            }
+            requestNotificationPermission();
+            connectNotificationSocket();
+            updateCreateTaskButton();
+            updateAssignSelect();
+            await loadFamilyMembers();
             await loadSchedules();
-        } catch (e) {
-            alert(e?.message || 'Не удалось удалить');
+            await loadTasks();
+            setupEventListeners();
         }
-    }
-
-    function updateCreateTaskButton() {
-        const createBtn = document.getElementById('create-task-btn');
-        if (!createBtn) return;
         
-        if (currentUser?.role === 'parent' || currentUser?.role === 'admin' || currentUser?.role === 'user') {
-            createBtn.style.display = 'inline-flex';
-        } else {
-            createBtn.style.display = 'none';
+        async function loadCurrentUser() {
+            const saved = localStorage.getItem('homespace_currentUser');
+            if (saved) {
+                try {
+                    currentUser = JSON.parse(saved);
+                    token = localStorage.getItem('homespace_token');
+                } catch (e) {}
+            }
         }
-    }
-
-    async function loadCurrentUser() {
-        const saved = localStorage.getItem('homespace_currentUser');
-        if (saved) {
+        
+        async function loadFamilyMembers() {
+            if (!currentUser?.familyId) return;
             try {
-                currentUser = JSON.parse(saved);
-                token = localStorage.getItem('homespace_token');
-            } catch (e) {
-                console.error('Ошибка загрузки пользователя:', e);
+                const response = await fetch(`${API_URL}/families/${currentUser.familyId}/members`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    familyMembers = await response.json();
+                    updateAssignSelect();
+                }
+            } catch (error) {}
+        }
+        
+        function updateAssignSelect() {
+            const select = document.getElementById('task-assigned');
+            if (!select) return;
+            select.innerHTML = '';
+            if (currentUser?.role === 'user') {
+                const selfOption = document.createElement('option');
+                selfOption.value = currentUser.id;
+                selfOption.textContent = `📌 Назначить себе (${currentUser.name})`;
+                select.appendChild(selfOption);
+                selfOption.selected = true;
+            } else if (currentUser?.role === 'parent' || currentUser?.role === 'admin') {
+                const noneOption = document.createElement('option');
+                noneOption.value = '';
+                noneOption.textContent = '— Не назначено —';
+                select.appendChild(noneOption);
+                const selfOption = document.createElement('option');
+                selfOption.value = currentUser.id;
+                selfOption.textContent = `📌 Назначить себе (${currentUser.name})`;
+                select.appendChild(selfOption);
+                familyMembers.forEach(member => {
+                    if (member.id !== currentUser?.id) {
+                        const option = document.createElement('option');
+                        option.value = member.id;
+                        option.textContent = `${member.name} (${member.role === 'parent' ? 'Родитель' : 'Ребёнок'})`;
+                        select.appendChild(option);
+                    }
+                });
+            } else if (currentUser?.role === 'child') {
+                const noneOption = document.createElement('option');
+                noneOption.value = '';
+                noneOption.textContent = '— Не назначено —';
+                select.appendChild(noneOption);
+                familyMembers.forEach(member => {
+                    if (member.id !== currentUser?.id) {
+                        const option = document.createElement('option');
+                        option.value = member.id;
+                        option.textContent = `${member.name} (${member.role === 'parent' ? 'Родитель' : 'Ребёнок'})`;
+                        select.appendChild(option);
+                    }
+                });
             }
         }
-    }
-
-    async function loadFamilyMembers() {
-        if (!currentUser?.familyId) return;
         
-        try {
-            const response = await fetch(`${API_URL}/families/${currentUser.familyId}/members`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            
-            if (response.ok) {
-                familyMembers = await response.json();
-                updateAssignSelect();
+        function updateCreateTaskButton() {
+            const createBtn = document.getElementById('create-task-btn');
+            if (!createBtn) return;
+            if (currentUser?.role === 'parent' || currentUser?.role === 'admin' || currentUser?.role === 'user') {
+                createBtn.style.display = 'inline-flex';
+            } else {
+                createBtn.style.display = 'none';
             }
-        } catch (error) {
-            console.error('Ошибка загрузки членов семьи:', error);
         }
-    }
-
-    function updateAssignSelect() {
-        const select = document.getElementById('task-assigned');
-        if (!select) return;
         
-        select.innerHTML = '';
+        async function loadSchedules() {
+            try {
+                const response = await fetch(`${API_URL}/task-schedules`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!response.ok) return;
+                schedules = await response.json();
+            } catch {
+                schedules = [];
+            }
+        }
         
-        // Для ОБЫЧНОГО ПОЛЬЗОВАТЕЛЯ (user) - только опция "Назначить себе"
-        if (currentUser?.role === 'user') {
-            const selfOption = document.createElement('option');
-            selfOption.value = currentUser.id;
-            selfOption.textContent = `📌 Назначить себе (${currentUser.name})`;
-            select.appendChild(selfOption);
-            selfOption.selected = true;
-        }
-        // Для РОДИТЕЛЯ (parent) - опция "Не назначено" + "Назначить себе" + дети
-        else if (currentUser?.role === 'parent' || currentUser?.role === 'admin') {
-            const noneOption = document.createElement('option');
-            noneOption.value = '';
-            noneOption.textContent = '— Не назначено —';
-            select.appendChild(noneOption);
-            
-            const selfOption = document.createElement('option');
-            selfOption.value = currentUser.id;
-            selfOption.textContent = `📌 Назначить себе (${currentUser.name})`;
-            select.appendChild(selfOption);
-            
-            familyMembers.forEach(member => {
-                if (member.id !== currentUser?.id) {
-                    const option = document.createElement('option');
-                    option.value = member.id;
-                    option.textContent = `${member.name} (${member.role === 'parent' ? 'Родитель' : 'Ребёнок'})`;
-                    select.appendChild(option);
-                }
-            });
-        }
-        // Для РЕБЕНКА (child) - только члены семьи (родители)
-        else if (currentUser?.role === 'child') {
-            const noneOption = document.createElement('option');
-            noneOption.value = '';
-            noneOption.textContent = '— Не назначено —';
-            select.appendChild(noneOption);
-            
-            familyMembers.forEach(member => {
-                if (member.id !== currentUser?.id) {
-                    const option = document.createElement('option');
-                    option.value = member.id;
-                    option.textContent = `${member.name} (${member.role === 'parent' ? 'Родитель' : 'Ребёнок'})`;
-                    select.appendChild(option);
-                }
-            });
-        }
-    }
-
-    async function loadTasks() {
+async function loadTasks() {
     try {
         let url = `${API_URL}/tasks?`;
         if (currentFilter === 'completed') {
@@ -839,8 +745,6 @@ if (presetItemKey) {
         } else if (currentFilter === 'pending') {
             url += 'status=pending';
         } else if (currentFilter === 'my' && currentUser) {
-            // Для обычного пользователя — задания, где он назначен
-            // Для родителя — задания, которые он создал ИЛИ на которые он назначен
             if (currentUser.role === 'parent' || currentUser.role === 'admin') {
                 url += `assignedTo=${currentUser.id}&createdBy=${currentUser.id}`;
             } else {
@@ -854,12 +758,80 @@ if (presetItemKey) {
         
         if (!response.ok) throw new Error('Ошибка загрузки');
         
-        tasks = await response.json();
+        allRealTasks = await response.json();
         
-        // Сортировка: активные сверху, выполненные внизу
+        const now = new Date();
+        
+        // Реальные задания (уже созданные)
+        const realTasks = allRealTasks.filter(task => {
+            // Создатель видит всё
+            if (task.created_by === currentUser?.id) return true;
+            
+            // Для получателя: если задание из расписания и время ещё не наступило — скрываем
+            if (task.schedule_parent_id) {
+                const schedule = schedules.find(s => s.id === task.schedule_parent_id);
+                if (schedule && schedule.next_run_at) {
+                    const taskTime = new Date(schedule.next_run_at);
+                    if (taskTime > now) {
+                        console.log(`⏳ Скрываем задание "${task.title}" от получателя (ещё не время)`);
+                        return false;
+                    }
+                }
+            }
+            return true;
+        });
+        
+        // ВИРТУАЛЬНЫЕ задания для создателя (активные расписания, которые ещё не создали задание)
+        const activeSchedules = schedules.filter(s => 
+            s.created_by === currentUser?.id && 
+            s.active === 1 &&
+            !allRealTasks.some(t => t.schedule_parent_id === s.id)
+        );
+        
+        console.log('📋 Активные расписания для создателя:', activeSchedules.length);
+        
+        // Получаем имена пользователей для назначенных
+        let userNames = {};
+        for (const s of activeSchedules) {
+            if (s.assigned_to && !userNames[s.assigned_to]) {
+                const user = familyMembers.find(m => m.id === s.assigned_to);
+                userNames[s.assigned_to] = user?.name || (s.assigned_to === currentUser?.id ? currentUser.name : 'Не назначено');
+            }
+        }
+        
+        const virtualTasks = activeSchedules.map(s => ({
+            id: `schedule_${s.id}`,
+            title: s.title,
+            description: s.description,
+            bonus: s.bonus,
+            assigned_to: s.assigned_to,
+            assigned_to_name: userNames[s.assigned_to] || 'Не назначено',
+            created_by: s.created_by,
+            created_by_name: currentUser?.name,
+            status: 'scheduled',
+            schedule_parent_id: s.id,
+            is_virtual: true,
+            schedule_next_run: s.next_run_at,
+            schedule_type: s.schedule_type,
+            time_of_day: s.time_of_day
+        }));
+        
+        // Объединяем реальные + виртуальные
+        tasks = [...realTasks, ...virtualTasks];
+        
+        console.log(`📊 Всего заданий: ${tasks.length} (реальных: ${realTasks.length}, виртуальных: ${virtualTasks.length})`);
+        
         tasks.sort((a, b) => {
             if (a.status === 'completed' && b.status !== 'completed') return 1;
             if (a.status !== 'completed' && b.status === 'completed') return -1;
+            if (a.is_virtual && !b.is_virtual) return -1;
+            if (!a.is_virtual && b.is_virtual) return 1;
+            // Сортируем виртуальные по дате выполнения
+            if (a.is_virtual && b.is_virtual) {
+                const dateA = new Date(a.schedule_next_run || 0);
+                const dateB = new Date(b.schedule_next_run || 0);
+                return dateA - dateB;
+            }
             return 0;
         });
         
@@ -869,7 +841,13 @@ if (presetItemKey) {
         console.error('Ошибка загрузки заданий:', error);
     }
 }
-
+        
+        function formatScheduleDate(schedule) {
+            if (!schedule.next_run_at) return 'неизвестно';
+            const date = new Date(schedule.next_run_at);
+            return date.toLocaleString('ru-RU', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' });
+        }
+        
 function renderTasks() {
     const container = document.getElementById('tasks-list');
     if (!container) return;
@@ -889,13 +867,7 @@ function renderTasks() {
     }
     
     if (!filteredTasks || filteredTasks.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <div class="empty-state-icon">📋</div>
-                <div>Нет заданий</div>
-                <div style="font-size:12px; margin-top:8px;">Создайте новое задание!</div>
-            </div>
-        `;
+        container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📋</div><div>Нет заданий</div><div style="font-size:12px; margin-top:8px;">Создайте новое задание!</div></div>`;
         return;
     }
     
@@ -903,53 +875,64 @@ function renderTasks() {
     
     filteredTasks.forEach(task => {
         const isCompleted = task.status === 'completed';
-        const canComplete = task.assigned_to === currentUser?.id || 
-                           !task.assigned_to || 
-                           currentUser?.role === 'parent';
+        const isVirtual = task.is_virtual === true;
+        const isScheduled = task.status === 'scheduled';
+        const canComplete = !isVirtual && !isScheduled && (task.assigned_to === currentUser?.id || !task.assigned_to || currentUser?.role === 'parent');
         
         let canDelete = false;
         if (currentUser?.role === 'parent' || currentUser?.role === 'admin') {
             canDelete = true;
-        } else if (currentUser?.role === 'user' && isCompleted && task.assigned_to === currentUser.id) {
-            canDelete = true;
-        } else if (currentUser?.role === 'child' && isCompleted && task.assigned_to === currentUser.id) {
+        } else if (!isVirtual && ((currentUser?.role === 'user' && isCompleted && task.assigned_to === currentUser.id) ||
+               (currentUser?.role === 'child' && isCompleted && task.assigned_to === currentUser.id))) {
             canDelete = true;
         }
         
+        // 👇 НОВАЯ ПЕРЕМЕННАЯ ДЛЯ УДАЛЕНИЯ ЗАПЛАНИРОВАННОГО АВТОЗАДАНИЯ
+        const canDeleteSchedule = isVirtual && currentUser?.id === task.created_by;
+        
         const taskDiv = document.createElement('div');
-        taskDiv.className = `task-card ${isCompleted ? 'completed' : ''}`;
+        let cardClass = `task-card ${isCompleted ? 'completed' : ''}`;
+        if (isVirtual) cardClass += ' scheduled-task';
+        if (!isVirtual && !isCompleted && task.schedule_parent_id) cardClass += ' auto-task';
+        taskDiv.className = cardClass;
+        
+        let statusText = isCompleted ? '✅ Выполнено' : (isVirtual ? '⏳ Запланировано' : '⏳ В ожидании');
+        let badgeHtml = '';
+        if (isVirtual) {
+            const schedule = schedules.find(s => s.id === task.schedule_parent_id);
+            badgeHtml = `<span class="task-badge-scheduled">🤖 Запланировано на ${formatScheduleDate(schedule || task)}</span>`;
+        } else if (task.schedule_parent_id && !isCompleted) {
+            badgeHtml = '<span class="task-badge-auto">⏰ Автозадание</span>';
+        }
         
         taskDiv.innerHTML = `
             <div class="task-info">
                 <div class="task-title">
                     ${task.title || 'Без названия'}
-                    <span class="task-status ${isCompleted ? 'completed' : ''}">
-                        ${isCompleted ? '✅ Выполнено' : '⏳ В ожидании'}
-                    </span>
+                    <span class="task-status ${isCompleted ? 'completed' : ''}">${statusText}</span>
+                    ${badgeHtml}
                 </div>
                 ${task.description ? `<div class="task-description">${escapeHtml(task.description)}</div>` : ''}
                 <div class="task-meta">
                     <span class="task-bonus">💰 ${task.bonus || 0} бонусов</span>
-                    <span class="task-assigned">
-                        👤 ${task.assigned_to_name || 'Не назначено'}
-                    </span>
+                    <span class="task-assigned">👤 ${task.assigned_to_name || 'Не назначено'}</span>
                     ${task.created_by_name ? `<span>✏️ от ${task.created_by_name}</span>` : ''}
+                    ${isVirtual ? `<span style="color:#4caf50;">📅 Выполнится: ${formatScheduleDate(schedules.find(s => s.id === task.schedule_parent_id) || task)}</span>` : ''}
                 </div>
+                ${!isVirtual ? `
                 <div class="subtasks">
                     ${renderSubtasks(task.id)}
-                    <div style="display:flex; gap:6px;">
-                        <input id="subtask-input-${task.id}" type="text" placeholder="Подзадача..." style="margin:0; padding:4px 8px; font-size:12px; border-radius:8px; border:1px solid rgba(78,204,163,.4); background:rgba(0,0,0,.3); color:#fff;">
-                        <button class="complete-btn" style="padding:4px 10px;" data-subtask-add="${task.id}">+</button>
+                    <div style="display:flex; gap:6px; margin-top:8px;">
+                        <input id="subtask-input-${task.id}" type="text" placeholder="Подзадача..." style="flex:1; padding:6px 10px; font-size:12px; border-radius:12px; border:1px solid rgba(137,207,240,.6); background:rgba(248,252,255,.95); color:#33465d;">
+                        <button class="complete-btn" style="padding:4px 12px;" data-subtask-add="${task.id}">+</button>
                     </div>
                 </div>
+                ` : ''}
             </div>
             <div class="task-actions">
-                ${!isCompleted && canComplete ? `
-                    <button class="complete-btn" data-id="${task.id}" data-bonus="${task.bonus}">Выполнить</button>
-                ` : ''}
-                ${canDelete ? `
-                    <button class="delete-btn" data-id="${task.id}">🗑 Удалить</button>
-                ` : ''}
+                ${!isCompleted && canComplete ? `<button class="complete-btn" data-id="${task.id}" data-bonus="${task.bonus}">Выполнить</button>` : ''}
+                ${canDelete && !isVirtual ? `<button class="delete-btn" data-id="${task.id}">🗑 Удалить</button>` : ''}
+                ${canDeleteSchedule ? `<button class="delete-btn" data-schedule-id="${task.schedule_parent_id}">🗑 Удалить автозадание</button>` : ''}
             </div>
         `;
         
@@ -957,113 +940,148 @@ function renderTasks() {
     });
     
     document.querySelectorAll('.complete-btn').forEach(btn => {
-        btn.addEventListener('click', () => completeTask(btn.dataset.id, parseInt(btn.dataset.bonus)));
+        if (btn.dataset.id && !btn.dataset.id.toString().startsWith('schedule_')) {
+            btn.addEventListener('click', () => completeTask(btn.dataset.id, parseInt(btn.dataset.bonus)));
+        }
     });
     
     document.querySelectorAll('.delete-btn').forEach(btn => {
-        btn.addEventListener('click', () => deleteTask(btn.dataset.id));
+        if (btn.dataset.id && !btn.dataset.id.toString().startsWith('schedule_')) {
+            btn.addEventListener('click', () => deleteTask(btn.dataset.id));
+        }
+        // 👇 НОВЫЙ ОБРАБОТЧИК ДЛЯ УДАЛЕНИЯ АВТОЗАДАНИЙ
+        if (btn.dataset.scheduleId) {
+            btn.addEventListener('click', async () => {
+                if (confirm('🗑 Удалить запланированное автозадание? Оно не будет создано в назначенное время.')) {
+                    await deleteSchedule(btn.dataset.scheduleId);
+                    await loadSchedules();
+                    await loadTasks();
+                }
+            });
+        }
     });
+    
     document.querySelectorAll('[data-subtask-add]').forEach(btn => {
         btn.addEventListener('click', () => addSubtask(btn.dataset.subtaskAdd));
     });
 }
-
-    function updateStats() {
-        const total = tasks.length;
-        const completed = tasks.filter(t => t.status === 'completed').length;
-        const pending = tasks.filter(t => t.status === 'pending').length;
-        const myTasks = tasks.filter(t => t.assigned_to === currentUser?.id && t.status !== 'completed').length;
-        const totalBonuses = tasks
-            .filter(t => t.status === 'completed')
-            .reduce((sum, t) => sum + (t.bonus || 0), 0);
         
-        document.getElementById('total-tasks').textContent = total;
-        document.getElementById('completed-tasks').textContent = completed;
-        document.getElementById('pending-tasks').textContent = pending;
-        document.getElementById('my-tasks').textContent = myTasks;
-        document.getElementById('total-bonuses').textContent = totalBonuses;
-    }
-
-    async function completeTask(taskId, bonus) {
-        try {
-            const response = await fetch(`${API_URL}/tasks/${taskId}/complete`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'Ошибка выполнения');
-            }
-            
-            const result = await response.json();
-            
-            alert(`Задание выполнено! +${bonus} бонусов!`);
-            
-            if (currentUser) {
-                currentUser.bonuses = result.newBalance;
-                localStorage.setItem('homespace_currentUser', JSON.stringify(currentUser));
-            }
-            
-            await loadTasks();
-        } catch (error) {
-            console.error('Ошибка выполнения:', error);
-            alert('Не удалось выполнить задание');
+        function renderSubtasks(taskId) {
+            const items = subtasksStore[taskId] || [];
+            if (!items.length) return '<div class="subtask-item">📝 Подзадач нет</div>';
+            return items.map((s, i) => `<label class="subtask-item"><input type="checkbox" ${s.done ? 'checked' : ''} onchange="toggleSubtask('${taskId}', ${i})"> ${escapeHtml(s.text)}</label>`).join('');
         }
-    }
-
-async function deleteTask(taskId) {
-    if (!confirm('Удалить задание?')) return;
-    
+        
+        function addSubtask(taskId) {
+            const input = document.getElementById(`subtask-input-${taskId}`);
+            const text = input?.value?.trim();
+            if (!text) return;
+            if (!subtasksStore[taskId]) subtasksStore[taskId] = [];
+            subtasksStore[taskId].push({ text, done: false });
+            localStorage.setItem('homespace_subtasks', JSON.stringify(subtasksStore));
+            renderTasks();
+        }
+        
+        window.toggleSubtask = function(taskId, index) {
+            const list = subtasksStore[taskId] || [];
+            if (!list[index]) return;
+            list[index].done = !list[index].done;
+            localStorage.setItem('homespace_subtasks', JSON.stringify(subtasksStore));
+            renderTasks();
+        };
+        
+        function updateStats() {
+            const realTasksOnly = tasks.filter(t => !t.is_virtual);
+            const total = realTasksOnly.length;
+            const completed = realTasksOnly.filter(t => t.status === 'completed').length;
+            const pending = realTasksOnly.filter(t => t.status === 'pending').length;
+            const myTasks = realTasksOnly.filter(t => t.assigned_to === currentUser?.id && t.status !== 'completed').length;
+            const totalBonuses = realTasksOnly.filter(t => t.status === 'completed').reduce((sum, t) => sum + (t.bonus || 0), 0);
+            
+            document.getElementById('total-tasks').textContent = total;
+            document.getElementById('completed-tasks').textContent = completed;
+            document.getElementById('pending-tasks').textContent = pending;
+            document.getElementById('my-tasks').textContent = myTasks;
+            document.getElementById('total-bonuses').textContent = totalBonuses;
+        }
+        
+        async function completeTask(taskId, bonus) {
+            try {
+                const response = await fetch(`${API_URL}/tasks/${taskId}/complete`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!response.ok) throw new Error();
+                const result = await response.json();
+                alert(`Задание выполнено! +${bonus} бонусов!`);
+                if (currentUser) {
+                    currentUser.bonuses = result.newBalance;
+                    localStorage.setItem('homespace_currentUser', JSON.stringify(currentUser));
+                }
+                await loadTasks();
+            } catch (error) {
+                alert('Не удалось выполнить задание');
+            }
+        }
+        
+        async function deleteTask(taskId) {
+            if (!confirm('Удалить задание?')) return;
+            try {
+                const response = await fetch(`${API_URL}/tasks/${taskId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!response.ok) throw new Error();
+                alert('Задание удалено');
+                await loadTasks();
+            } catch (error) {
+                alert('Не удалось удалить задание');
+            }
+        }
+        async function deleteSchedule(scheduleId) {
     try {
-        const response = await fetch(`${API_URL}/tasks/${taskId}`, {
+        const response = await fetch(`${API_URL}/task-schedules/${scheduleId}`, {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Ошибка удаления');
-        }
-        
-        alert('Задание удалено');
-        await loadTasks();
+        if (!response.ok) throw new Error();
+        alert('✅ Автозадание удалено');
     } catch (error) {
-        console.error('Ошибка удаления:', error);
-        alert('Не удалось удалить задание');
+        alert('❌ Ошибка удаления');
     }
 }
-
-    async function createTask(taskData) {
-        try {
-            const response = await fetch(`${API_URL}/tasks`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(taskData)
-            });
-            
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'Ошибка создания');
+        
+        async function createTask(taskData) {
+            try {
+                const response = await fetch(`${API_URL}/tasks`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(taskData)
+                });
+                if (!response.ok) throw new Error();
+                alert('Задание создано');
+                closeModal();
+                await loadTasks();
+            } catch (error) {
+                alert(error.message);
             }
-            
-            alert('Задание создано');
-            closeModal();
-            await loadTasks();
-        } catch (error) {
-            console.error('Ошибка создания:', error);
-            alert(error.message);
         }
-    }
-
-    function showCreateModal() {
+        
+function showCreateModal() {
     const modal = document.getElementById('task-modal');
+    const dowsContainer = document.getElementById('task-dows');
+    const days = [
+        { v: 1, t: 'Пн' }, { v: 2, t: 'Вт' }, { v: 3, t: 'Ср' },
+        { v: 4, t: 'Чт' }, { v: 5, t: 'Пт' }, { v: 6, t: 'Сб' }, { v: 0, t: 'Вс' }
+    ];
+    dowsContainer.innerHTML = days.map(d => `
+        <label style="display:inline-flex; align-items:center; gap:8px; padding:10px 12px; border-radius:999px; border:1px solid rgba(137,207,240,0.5); background: rgba(230, 242, 255, 0.95); cursor:pointer; font-size:14px; color:#33465d;">
+            <input type="checkbox" data-dow="${d.v}" style="width:16px; height:16px; accent-color:#89cff0;">
+            <span>${d.t}</span>
+        </label>
+    `).join('');
     
     updateAssignSelect();
-    
     document.getElementById('task-title').value = '';
     document.getElementById('task-description').value = '';
     document.getElementById('task-bonus').value = '10';
@@ -1071,72 +1089,79 @@ async function deleteTask(taskId) {
     document.getElementById('task-time').value = '09:00';
     document.getElementById('task-dows').style.display = 'none';
     document.getElementById('task-runat').style.display = 'none';
-    document.querySelectorAll('#task-dows input[type="checkbox"][data-dow]').forEach(i => i.checked = false);
+    
+    // Сбрасываем чекбоксы
+    const checkboxes = dowsContainer.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach(cb => cb.checked = false);
     
     modal.classList.add('active');
 }
-
-    function closeModal() {
-        const modal = document.getElementById('task-modal');
-        modal.classList.remove('active');
-    }
-
-    function setupEventListeners() {
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                currentFilter = btn.dataset.filter;
-                loadTasks();
-            });
-        });
         
-        document.getElementById('create-task-btn').onclick = showCreateModal;
-        document.getElementById('modal-cancel').onclick = closeModal;
-        document.getElementById('task-recurrence').onchange = () => {
-            const v = document.getElementById('task-recurrence').value;
-            const dows = document.getElementById('task-dows');
-            const runAt = document.getElementById('task-runat');
-            const time = document.getElementById('task-time');
-            if (v === 'weekly') { dows.style.display = 'flex'; runAt.style.display = 'none'; time.style.display = 'block'; }
-            else if (v === 'once') { dows.style.display = 'none'; runAt.style.display = 'block'; time.style.display = 'none'; }
-            else { dows.style.display = 'none'; runAt.style.display = 'none'; time.style.display = 'block'; }
-        };
-        document.getElementById('modal-save').onclick = () => {
+        function closeModal() {
+            document.getElementById('task-modal').classList.remove('active');
+        }
+        
+        function setupEventListeners() {
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentFilter = btn.dataset.filter;
+                    loadTasks();
+                });
+            });
+            
+            document.getElementById('create-task-btn').onclick = showCreateModal;
+            document.getElementById('modal-cancel').onclick = closeModal;
+            document.getElementById('task-recurrence').onchange = () => {
+                const v = document.getElementById('task-recurrence').value;
+                const dows = document.getElementById('task-dows');
+                const runAt = document.getElementById('task-runat');
+                const time = document.getElementById('task-time');
+                if (v === 'weekly') { dows.style.display = 'flex'; runAt.style.display = 'none'; time.style.display = 'block'; }
+                else if (v === 'once') { dows.style.display = 'none'; runAt.style.display = 'block'; time.style.display = 'none'; }
+                else { dows.style.display = 'none'; runAt.style.display = 'none'; time.style.display = 'block'; }
+            };
+            
+document.getElementById('modal-save').onclick = () => {
     const title = document.getElementById('task-title').value.trim();
-    if (!title) {
-        alert('Введите название задания');
-        return;
-    }
+    if (!title) { alert('Введите название задания'); return; }
     
     let assignedTo = document.getElementById('task-assigned').value || null;
+    if (currentUser?.role === 'user') assignedTo = currentUser.id;
     
-    if (currentUser?.role === 'user') {
-        assignedTo = currentUser.id;
-    }
-
     const recurrence = document.getElementById('task-recurrence').value;
     if (recurrence && recurrence !== 'none') {
         const tzOffset = -new Date().getTimezoneOffset();
-        const scheduleType = recurrence; // daily | weekly | once
         let daysOfWeek = undefined;
         let runAt = undefined;
-        if (scheduleType === 'weekly') {
-            daysOfWeek = Array.from(document.querySelectorAll('#task-dows input[type="checkbox"][data-dow]'))
-                .filter(i => i.checked)
-                .map(i => Number(i.dataset.dow));
-            if (!daysOfWeek.length) {
-                alert('Выберите хотя бы один день недели');
-                return;
+        
+        console.log('📅 Выбран тип:', recurrence);
+        
+        if (recurrence === 'weekly') {
+            // Получаем выбранные дни недели
+            const dowsContainer = document.getElementById('task-dows');
+            const checkboxes = dowsContainer.querySelectorAll('input[type="checkbox"]');
+            daysOfWeek = Array.from(checkboxes)
+                .filter(cb => cb.checked)
+                .map(cb => parseInt(cb.dataset.dow));
+            
+            console.log('📅 Выбранные дни недели:', daysOfWeek);
+            
+            if (!daysOfWeek.length) { 
+                alert('Выберите хотя бы один день недели'); 
+                return; 
             }
         }
-        if (scheduleType === 'once') {
+        if (recurrence === 'once') {
             runAt = document.getElementById('task-runat').value;
-            if (!runAt) {
-                alert('Выберите дату и время');
-                return;
-            }
+            if (!runAt) { alert('Выберите дату и время'); return; }
+            console.log('📅 Выбранная дата:', runAt);
         }
+        
+        const timeValue = recurrence === 'once' ? undefined : (document.getElementById('task-time').value || '09:00');
+        console.log('⏰ Время:', timeValue);
+        
         const payload = {
             title: title,
             description: document.getElementById('task-description').value,
@@ -1144,12 +1169,14 @@ async function deleteTask(taskId) {
             assignedTo: assignedTo,
             itemKey: null,
             itemInstanceId: null,
-            scheduleType,
-            timeOfDay: scheduleType === 'once' ? undefined : (document.getElementById('task-time').value || '09:00'),
-            daysOfWeek,
-            runAt,
+            scheduleType: recurrence,
+            timeOfDay: timeValue,
+            daysOfWeek: daysOfWeek,
+            runAt: runAt,
             timezoneOffsetMin: tzOffset
         };
+        
+        console.log('📤 Отправляем payload:', payload);
         createSchedule(payload);
     } else {
         createTask({
@@ -1161,88 +1188,52 @@ async function deleteTask(taskId) {
         });
     }
 };
+            
+            document.getElementById('bonus-minus').onclick = () => {
+                const input = document.getElementById('task-bonus');
+                let val = parseInt(input.value) || 10;
+                if (val > 1) input.value = val - 1;
+            };
+            document.getElementById('bonus-plus').onclick = () => {
+                const input = document.getElementById('task-bonus');
+                let val = parseInt(input.value) || 10;
+                input.value = val + 1;
+            };
+            
+            document.getElementById('task-modal').onclick = (e) => {
+                if (e.target === document.getElementById('task-modal')) closeModal();
+            };
+            
+            const searchInput = document.getElementById('tasks-search');
+            if (searchInput) {
+                searchInput.addEventListener('input', () => {
+                    searchQuery = searchInput.value.trim();
+                    renderTasks();
+                });
+            }
+        }
         
-        document.getElementById('bonus-minus').onclick = () => {
-            const input = document.getElementById('task-bonus');
-            let val = parseInt(input.value) || 10;
-            if (val > 1) input.value = val - 1;
-        };
-        document.getElementById('bonus-plus').onclick = () => {
-            const input = document.getElementById('task-bonus');
-            let val = parseInt(input.value) || 10;
-            input.value = val + 1;
-        };
-        
-        document.getElementById('task-modal').onclick = (e) => {
-            if (e.target === document.getElementById('task-modal')) {
+        async function createSchedule(scheduleData) {
+            try {
+                const response = await fetch(`${API_URL}/task-schedules`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(scheduleData)
+                });
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Ошибка создания');
+                }
+                alert('✅ Автозадание создано!');
                 closeModal();
+                await loadSchedules();
+                await loadTasks();
+            } catch (e) {
+                alert(e?.message || 'Не удалось создать автозадание');
             }
-        };
+        }
         
-        const searchInput = document.getElementById('tasks-search');
-        if (searchInput) {
-            searchInput.addEventListener('input', () => {
-                searchQuery = searchInput.value.trim();
-                renderTasks();
-            });
-        }
-    }
-
-    async function createSchedule(scheduleData) {
-        try {
-            const response = await fetch(`${API_URL}/task-schedules`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(scheduleData)
-            });
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'Ошибка создания');
-            }
-            alert('Автозадание создано');
-            closeModal();
-            await loadSchedules();
-        } catch (e) {
-            alert(e?.message || 'Не удалось создать автозадание');
-        }
-    }
-
-    function renderSubtasks(taskId) {
-        const items = subtasksStore[taskId] || [];
-        if (!items.length) return '<div class="subtask-item">Подзадач нет</div>';
-        return items.map((s, i) => `<label class="subtask-item"><input type="checkbox" ${s.done ? 'checked' : ''} onchange="toggleSubtask('${taskId}', ${i})"> ${escapeHtml(s.text)}</label>`).join('');
-    }
-
-    function addSubtask(taskId) {
-        const input = document.getElementById(`subtask-input-${taskId}`);
-        const text = input?.value?.trim();
-        if (!text) return;
-        if (!subtasksStore[taskId]) subtasksStore[taskId] = [];
-        subtasksStore[taskId].push({ text, done: false });
-        localStorage.setItem('homespace_subtasks', JSON.stringify(subtasksStore));
-        renderTasks();
-    }
-
-    window.toggleSubtask = function(taskId, index) {
-        const list = subtasksStore[taskId] || [];
-        if (!list[index]) return;
-        list[index].done = !list[index].done;
-        localStorage.setItem('homespace_subtasks', JSON.stringify(subtasksStore));
-        renderTasks();
-    };
-
-    function escapeHtml(text) {
-        if (!text) return '';
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-
-    // Запуск
-    init();
-</script>
+        init();
+    </script>
 </body>
 </html>

@@ -10,7 +10,7 @@ const config = {
     height: 800,
     parent: 'game',
     scene: [EditorScene],
-    backgroundColor: '#1a1a2e',
+    backgroundColor: '#cfe3fb',
     scale: {
         mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH

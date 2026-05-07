@@ -443,11 +443,16 @@ displayUsers() {
             ).setOrigin(isMe ? 1 : 0, 1);
             this.messagesContainer.add(bg);
             
-            // Текст сообщения
+            // Текст сообщения с отметкой редактирования
+            let displayText = msg.message;
+            if (msg.is_edited) {
+                displayText += ' (ред.)';
+            }
+            
             const messageText = this.add.text(
                 msgX + (isMe ? -textWidth - 12 : 12),
                 y + textHeight - 8,
-                msg.message,
+                displayText,
                 {
                     fontSize: '13px',
                     fill: textColor,
@@ -470,6 +475,28 @@ displayUsers() {
                 }).setOrigin(isMe ? 1 : 0, 1)
             );
             
+            // Кнопка меню (три точки) для собственных сообщений или если админ/родитель
+            const isParent = this.currentUser?.role === 'parent' || this.currentUser?.role === 'admin';
+            const canManage = isMe || isParent;
+            if (canManage) {
+                const menuBtnX = isMe ? msgX - textWidth - 40 : msgX + textWidth + 32;
+                const menuBtn = this.add.text(menuBtnX, y + textHeight - 4, '⋮', {
+                    fontSize: '18px',
+                    fill: '#888888'
+                }).setOrigin(0, 1)
+                  .setInteractive({ useHandCursor: true });
+                
+                menuBtn.on('pointerover', () => {
+                    menuBtn.setFill('#4ecca3');
+                });
+                menuBtn.on('pointerout', () => {
+                    menuBtn.setFill('#888888');
+                });
+                
+                menuBtn.on('pointerdown', () => this.showMessageMenu(msg, isMe));
+                this.messagesContainer.add(menuBtn);
+            }
+            
             y += textHeight + 8;
         });
 
@@ -480,6 +507,117 @@ displayUsers() {
         } else {
             this._messagesScroll?.setScrollY?.(prevScroll);
         }
+    }
+    
+    showMessageMenu(msg, isMe) {
+        // Создаем меню действий над сообщением
+        const menuX = this.messagesX + 100;
+        const menuY = this.messagesY + 150;
+        const isParent = this.currentUser?.role === 'parent' || this.currentUser?.role === 'admin';
+        
+        // Фон меню
+        const menuBg = this.add.rectangle(menuX, menuY, 200, 120, 0x2c3e50)
+            .setStrokeStyle(1, 0x4ecca3)
+            .setOrigin(0, 0);
+        
+        let menuButtons = [];
+        
+        // Опция редактирования (только для своих текстовых сообщений)
+        if (isMe && msg.message_type !== 'voice') {
+            const editBtn = this.add.text(menuX + 10, menuY + 10, '✎ Редактировать', {
+                fontSize: '14px',
+                fill: '#ffffff'
+            }).setInteractive({ useHandCursor: true });
+            
+            editBtn.on('pointerover', () => editBtn.setFill('#4ecca3'));
+            editBtn.on('pointerout', () => editBtn.setFill('#ffffff'));
+            editBtn.on('pointerdown', () => this.cleanupMenu(menuBg, menuButtons) || this.editMessage(msg));
+            menuButtons.push(editBtn);
+        }
+        
+        // Опция удалить для себя
+        const deleteForMeBtn = this.add.text(menuX + 10, menuY + (isMe && msg.message_type !== 'voice' ? 40 : 10), 
+            '🗑 Удалить у себя', {
+            fontSize: '14px',
+            fill: '#ffffff'
+        }).setInteractive({ useHandCursor: true });
+        
+        deleteForMeBtn.on('pointerover', () => deleteForMeBtn.setFill('#e94560'));
+        deleteForMeBtn.on('pointerout', () => deleteForMeBtn.setFill('#ffffff'));
+        deleteForMeBtn.on('pointerdown', () => this.cleanupMenu(menuBg, menuButtons) || this.deleteMessageForMe(msg));
+        menuButtons.push(deleteForMeBtn);
+        
+        // Опция удалить для всех (только для автора или админа)
+        const canDeleteForAll = isMe || isParent;
+        const deleteForAllBtn = this.add.text(menuX + 10, menuY + (isMe && msg.message_type !== 'voice' ? 70 : 40), 
+            '🗑 Удалить для всех', {
+            fontSize: '14px',
+            fill: canDeleteForAll ? '#ffffff' : '#666666'
+        }).setInteractive({ useHandCursor: canDeleteForAll });
+        
+        if (canDeleteForAll) {
+            deleteForAllBtn.on('pointerover', () => deleteForAllBtn.setFill('#e94560'));
+            deleteForAllBtn.on('pointerout', () => deleteForAllBtn.setFill('#ffffff'));
+            deleteForAllBtn.on('pointerdown', () => this.cleanupMenu(menuBg, menuButtons) || this.deleteMessageForAll(msg));
+        }
+        menuButtons.push(deleteForAllBtn);
+        
+        // Кнопка отмены
+        const cancelBtn = this.add.text(menuX + 175, menuY + 5, '✕', {
+            fontSize: '16px',
+            fill: '#888888'
+        }).setInteractive({ useHandCursor: true });
+        
+        cancelBtn.on('pointerdown', () => this.cleanupMenu(menuBg, [...menuButtons, cancelBtn]));
+        menuButtons.push(cancelBtn);
+    }
+    
+    cleanupMenu(menuBg, buttons) {
+        menuBg.destroy();
+        buttons.forEach(btn => btn?.destroy());
+    }
+    
+    editMessage(msg) {
+        const newText = prompt('Отредактировать сообщение:', msg.message);
+        if (!newText || newText.trim() === '' || newText === msg.message) return;
+        
+        api.editMessage(msg.id, newText.trim())
+            .then(() => {
+                this.loadMessages();
+                this.showNotification('Сообщение отредактировано', '#4ecca3');
+            })
+            .catch(error => {
+                console.error('Ошибка редактирования:', error);
+                this.showNotification('Ошибка редактирования', '#e94560');
+            });
+    }
+    
+    deleteMessageForMe(msg) {
+        if (!confirm('Удалить сообщение у себя?')) return;
+        
+        api.deleteMessage(msg.id, false)
+            .then(() => {
+                this.loadMessages();
+                this.showNotification('Сообщение удалено', '#4ecca3');
+            })
+            .catch(error => {
+                console.error('Ошибка удаления:', error);
+                this.showNotification('Ошибка удаления', '#e94560');
+            });
+    }
+    
+    deleteMessageForAll(msg) {
+        if (!confirm('Удалить сообщение для всех в семье?')) return;
+        
+        api.deleteMessage(msg.id, true)
+            .then(() => {
+                this.loadMessages();
+                this.showNotification('Сообщение удалено для всех', '#4ecca3');
+            })
+            .catch(error => {
+                console.error('Ошибка удаления:', error);
+                this.showNotification('Ошибка удаления', '#e94560');
+            });
     }
     
     async sendMessage() {

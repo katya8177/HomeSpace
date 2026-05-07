@@ -404,8 +404,8 @@ console.log('✅ Стрелки ↑↓ для слоёв');
         if (this.backButton) return;
         this.backButton = this.add.text(1000, 30, '← Вернуться к моим комнатам', {
             fontSize: '14px',
-            color: '#ffffff',
-            backgroundColor: '#000000aa',
+            color: '#e4e8ed',
+            backgroundColor: '#0a0249aa',
             padding: { x: 12, y: 6 },
             borderRadius: 20
         }).setInteractive({ useHandCursor: true }).setDepth(1000);
@@ -466,24 +466,24 @@ console.log('✅ Стрелки ↑↓ для слоёв');
             top: 20px;
             right: 20px;
             width: 280px;
-            background: rgba(15, 15, 26, 0.95);
+            background: rgba(226, 240, 255, 0.96);
             backdrop-filter: blur(10px);
             border-radius: 18px;
-            border: 1px solid rgba(78, 204, 163, 0.55);
-            color: white;
+            border: 1px solid rgba(137, 207, 240, 0.6);
+            color: #33465d;
             z-index: 1000;
             overflow: hidden;
             transition: all 0.3s ease;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            box-shadow: 0 10px 30px rgba(51,70,93,0.2);
         `;
         
         panelDiv.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.1);" id="parent-panel-header">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; cursor: pointer; border-bottom: 1px solid rgba(137,207,240,0.35);" id="parent-panel-header">
                 <span style="font-weight: bold;">👶 Комнаты детей</span>
                 <span id="parent-panel-toggle" style="font-size: 18px;">▼</span>
             </div>
             <div id="parent-panel-content" style="padding: 12px; max-height: 500px; overflow-y: auto;">
-                <div style="text-align: center; padding: 20px; color: rgba(255,255,255,0.6);">Загрузка...</div>
+                <div style="text-align: center; padding: 20px; color: rgba(51,70,93,0.72);">Загрузка...</div>
             </div>
         `;
         
@@ -602,13 +602,13 @@ console.log('✅ Стрелки ↑↓ для слоёв');
             this.background.setDepth(-10);
         } else {
             const colorMap = {
-                bg_default: '#1a1a2e',
-                bg_bedroom: '#2c1735',
-                bg_kitchen: '#3d2b18',
-                bg_bathroom: '#1a3847',
-                bg_livingroom: '#21322a'
+                bg_default: '#b9d4f5',
+                bg_bedroom: '#eceef0',
+                bg_kitchen: '#c3b989',
+                bg_bathroom: '#b7d0f0',
+                bg_livingroom: '#9da3a9'
             };
-            const color = colorMap[bg] || '#1a1a2e';
+            const color = colorMap[bg] || '#cfe3fb';
             this.cameras.main.setBackgroundColor(color);
         }
         this.updateBackgroundSelect();
@@ -681,7 +681,7 @@ console.log('✅ Стрелки ↑↓ для слоёв');
         if (this.gridGraphics) this.gridGraphics.destroy();
         
         this.gridGraphics = this.add.graphics();
-        this.gridGraphics.lineStyle(1, 0x4ecca3, 0.3);
+        this.gridGraphics.lineStyle(1, 0x72bde8, 0.35);
         
         for (let x = 0; x <= 1280; x += this.gridSize) {
             this.gridGraphics.moveTo(x, 0);
@@ -862,7 +862,7 @@ setupInput() {
     this.showTaskModal(itemType, itemInstanceId, itemName, assignedTo, assignedToName);
 }
     
-    showTaskModal(itemKey, itemInstanceId, itemName, presetAssignedTo, presetAssignedToName) {
+showTaskModal(itemKey, itemInstanceId, itemName, presetAssignedTo, presetAssignedToName) {
     const oldModal = document.getElementById('task-modal-editor');
     if (oldModal) oldModal.remove();
     
@@ -870,29 +870,28 @@ setupInput() {
     modal.id = 'task-modal-editor';
     modal.style.cssText = `
         display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); z-index: 10000;
+        background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); z-index: 10000;
         justify-content: center; align-items: center;
     `;
     
-    // Адаптивные размеры для телефона
     const isMobile = this.isMobile;
-    const padding = isMobile ? '20px' : '32px';
-    const titleSize = isMobile ? '20px' : '26px';
-    const inputPadding = isMobile ? '10px' : '14px';
+    const padding = isMobile ? '20px' : '28px';
+    const titleSize = isMobile ? '22px' : '26px';
+    const inputPadding = isMobile ? '12px' : '14px';
     const btnSize = isMobile ? '44px' : '44px';
     
     let selectHtml = '';
     if (presetAssignedTo) {
         selectHtml = `<input type="hidden" id="task-assigned-editor" value="${presetAssignedTo}">
-                      <div style="background: rgba(78,204,163,0.2); padding: 10px; border-radius: 8px; margin-bottom: 12px; text-align: center; font-size: ${isMobile ? '13px' : '15px'};">
+                      <div style="background: rgba(111,186,255,0.15); padding: 12px; border-radius: 16px; margin-bottom: 16px; text-align: center; font-size: ${isMobile ? '13px' : '14px'}; border: 1px solid rgba(111,186,255,0.3);">
                           👤 <strong>Назначено: ${presetAssignedToName}</strong>
                       </div>`;
     } else {
-        selectHtml = '<label style="color:white; display:block; margin-bottom:5px; font-size:' + (isMobile ? '13px' : '14px') + ';">👤 Назначить:</label>';
-        selectHtml += '<select id="task-assigned-editor" style="width:100%; padding:' + (isMobile ? '10px' : '12px') + '; background:rgba(44,62,80,0.8); border:1px solid rgba(78,204,163,0.3); border-radius:12px; color:white; font-size:' + (isMobile ? '14px' : '16px') + ';">';
+        selectHtml = '<label style="color:#33465d; display:block; margin-bottom:8px; font-size:' + (isMobile ? '14px' : '15px') + '; font-weight:500;">👤 Назначить:</label>';
+        selectHtml += '<select id="task-assigned-editor" style="width:100%; padding:' + (isMobile ? '12px' : '14px') + '; background:rgba(255,255,255,0.9); border:1px solid rgba(111,186,255,0.5); border-radius:16px; color:#33465d; font-size:' + (isMobile ? '15px' : '16px') + '; outline:none;">';
         selectHtml += `<option value="">— Не назначено —</option>`;
         if (this.currentUser?.role === 'parent') {
-            selectHtml += `<option value="${this.currentUser.id}">👑 Себе</option>`;
+            selectHtml += `<option value="${this.currentUser.id}">👑 Себе (${this.currentUser.name})</option>`;
         }
         if (this.children && this.children.length > 0) {
             for (const child of this.children) {
@@ -903,32 +902,36 @@ setupInput() {
     }
     
     modal.innerHTML = `
-        <div style="background:linear-gradient(135deg, rgba(26,26,46,0.98), rgba(22,33,62,0.98)); border-radius:24px; padding:${padding}; max-width:${isMobile ? '95%' : '520px'}; width:90%; border:1px solid rgba(78,204,163,0.4);">
-            <h3 style="color:#4ecca3; margin-bottom:20px; font-size:${titleSize}; text-align:center;">✨ Создать задание</h3>
-            <input type="text" id="task-title-editor" placeholder="Название задания" autocomplete="off" value="Задание для ${itemName}" style="width:100%; padding:${inputPadding}; margin-bottom:14px; background:rgba(15,25,35,0.9); border:1px solid rgba(78,204,163,0.3); border-radius:12px; color:#fff; font-size:${isMobile ? '14px' : '16px'};">
-            <textarea id="task-desc-editor" placeholder="Описание (необязательно)" style="width:100%; padding:${inputPadding}; margin-bottom:14px; background:rgba(15,25,35,0.9); border:1px solid rgba(78,204,163,0.3); border-radius:12px; color:#fff; resize:vertical; min-height:${isMobile ? '50px' : '80px'}; font-size:${isMobile ? '14px' : '16px'};"></textarea>
-            <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px; background:rgba(15,25,35,0.6); padding:8px 14px; border-radius:50px;">
-                <span style="color:#ffd700; font-weight:600; font-size:${isMobile ? '13px' : '15px'}; white-space:nowrap;">💰 Бонус:</span>
-                <button id="bonus-minus-editor" style="width:${btnSize}; height:${btnSize}; border-radius:50%; background:rgba(78,204,163,0.15); border:1px solid #4ecca3; color:#4ecca3; font-size:20px; cursor:pointer;">−</button>
-                <input type="number" id="task-bonus-editor" value="10" min="1" max="100" style="flex:1; margin-bottom:0; text-align:center; font-weight:700; font-size:${isMobile ? '16px' : '18px'}; background:rgba(0,0,0,0.5); border:1px solid rgba(78,204,163,0.3); border-radius:12px; color:#fff; padding:10px;">
-                <button id="bonus-plus-editor" style="width:${btnSize}; height:${btnSize}; border-radius:50%; background:rgba(78,204,163,0.15); border:1px solid #4ecca3; color:#4ecca3; font-size:20px; cursor:pointer;">+</button>
+        <div style="background:linear-gradient(135deg, rgba(255,255,255,0.98), rgba(240,248,255,0.98)); border-radius:32px; padding:${padding}; max-width:${isMobile ? '92%' : '540px'}; width:100%; border:1px solid rgba(111,186,255,0.4); box-shadow: 0 20px 40px rgba(0,0,0,0.2);">
+            <h3 style="color:#33465d; margin-bottom:20px; font-size:${titleSize}; text-align:center; font-weight:700;">✨ Создать задание</h3>
+            
+            <input type="text" id="task-title-editor" placeholder="Название задания" autocomplete="off" value="Задание для ${itemName}" style="width:100%; padding:${inputPadding}; margin-bottom:16px; background:rgba(255,255,255,0.95); border:1px solid rgba(111,186,255,0.5); border-radius:20px; color:#33465d; font-size:${isMobile ? '15px' : '16px'}; outline:none; transition:0.2s;">
+            
+            <textarea id="task-desc-editor" placeholder="Описание (необязательно)" style="width:100%; padding:${inputPadding}; margin-bottom:16px; background:rgba(255,255,255,0.95); border:1px solid rgba(111,186,255,0.5); border-radius:20px; color:#33465d; resize:vertical; min-height:${isMobile ? '60px' : '80px'}; font-size:${isMobile ? '15px' : '16px'}; outline:none; font-family:inherit;"></textarea>
+            
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px; background:rgba(111,186,255,0.08); padding:12px 16px; border-radius:60px;">
+                <span style="color:#33465d; font-weight:600; font-size:${isMobile ? '15px' : '16px'}; white-space:nowrap;">💰 Бонус:</span>
+                <button id="bonus-minus-editor" style="width:40px; height:40px; border-radius:50%; background:white; border:1px solid rgba(111,186,255,0.5); color:#6fbaff; font-size:22px; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center;">−</button>
+                <input type="number" id="task-bonus-editor" value="10" min="1" max="100" style="flex:1; text-align:center; font-weight:700; font-size:${isMobile ? '18px' : '20px'}; background:white; border:1px solid rgba(111,186,255,0.5); border-radius:20px; color:#33465d; padding:10px;">
+                <button id="bonus-plus-editor" style="width:40px; height:40px; border-radius:50%; background:white; border:1px solid rgba(111,186,255,0.5); color:#6fbaff; font-size:22px; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center;">+</button>
             </div>
-            <div id="task-assigned-container">${selectHtml}</div>
+            
+            <div id="task-assigned-container" style="margin-bottom:20px;">${selectHtml}</div>
 
-            <div style="margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.08);">
-                <div style="color: rgba(255,255,255,0.85); font-weight: 700; margin-bottom: 8px; font-size:${isMobile ? '13px' : '14px'};">
+            <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid rgba(111,186,255,0.3);">
+                <div style="color: #33465d; font-weight: 600; margin-bottom: 12px; font-size:${isMobile ? '14px' : '15px'};">
                     ⏰ Автоматически повторять
                 </div>
-                <div style="display:flex; gap:10px; flex-wrap: wrap;">
-                    <select id="task-recurrence-editor" style="flex:1; min-width: 160px; padding:${isMobile ? '10px' : '12px'}; background:rgba(44,62,80,0.8); border:1px solid rgba(78,204,163,0.3); border-radius:12px; color:white; font-size:${isMobile ? '14px' : '15px'};">
+                <div style="display:flex; gap:12px; flex-wrap: wrap; margin-bottom:12px;">
+                    <select id="task-recurrence-editor" style="flex:1; min-width: 160px; padding:${isMobile ? '12px' : '14px'}; background:white; border:1px solid rgba(111,186,255,0.5); border-radius:20px; color:#33465d; font-size:${isMobile ? '14px' : '15px'}; outline:none;">
                         <option value="none">Не повторять</option>
                         <option value="daily">Каждый день</option>
                         <option value="weekly">По дням недели</option>
                         <option value="once">Один раз (дата)</option>
                     </select>
-                    <input id="task-time-editor" type="time" value="09:00" style="flex:1; min-width: 140px; padding:${isMobile ? '10px' : '12px'}; background:rgba(44,62,80,0.8); border:1px solid rgba(78,204,163,0.3); border-radius:12px; color:white; font-size:${isMobile ? '14px' : '15px'};">
+                    <input id="task-time-editor" type="time" value="09:00" style="flex:1; min-width: 140px; padding:${isMobile ? '12px' : '14px'}; background:white; border:1px solid rgba(111,186,255,0.5); border-radius:20px; color:#33465d; font-size:${isMobile ? '14px' : '15px'}; outline:none;">
                 </div>
-                <div id="task-recur-extra-editor" style="margin-top: 10px; display:none;">
+                <div id="task-recur-extra-editor" style="margin-top: 12px; display:none;">
                     <div id="task-dows-editor" style="display:none; flex-wrap:wrap; gap:8px;">
                         ${[
                             { v: 1, t: 'Пн' },
@@ -939,28 +942,42 @@ setupInput() {
                             { v: 6, t: 'Сб' },
                             { v: 0, t: 'Вс' }
                         ].map(d => `
-                            <label style="display:inline-flex; align-items:center; gap:8px; padding:10px 12px; border-radius:999px; border:1px solid rgba(255,255,255,0.14); background: rgba(44, 62, 80, 0.55); cursor:pointer; font-size:${isMobile ? '13px' : '14px'}; color:#fff;">
-                                <input type="checkbox" data-dow="${d.v}" style="width:16px; height:16px; accent-color:#4ecca3;">
+                            <label style="display:inline-flex; align-items:center; gap:8px; padding:10px 14px; border-radius:40px; border:1px solid rgba(111,186,255,0.5); background: white; cursor:pointer; font-size:${isMobile ? '13px' : '14px'}; color:#33465d;">
+                                <input type="checkbox" data-dow="${d.v}" style="width:16px; height:16px; accent-color:#6fbaff;">
                                 <span>${d.t}</span>
                             </label>
                         `).join('')}
                     </div>
-                    <input id="task-runat-editor" type="datetime-local" style="width:100%; padding:${isMobile ? '10px' : '12px'}; background:rgba(44,62,80,0.8); border:1px solid rgba(78,204,163,0.3); border-radius:12px; color:white; font-size:${isMobile ? '14px' : '15px'}; display:none;" />
+                    <input id="task-runat-editor" type="datetime-local" style="width:100%; padding:${isMobile ? '12px' : '14px'}; background:white; border:1px solid rgba(111,186,255,0.5); border-radius:20px; color:#33465d; font-size:${isMobile ? '14px' : '15px'}; outline:none; display:none;" />
                 </div>
-                <div style="margin-top: 8px; color: rgba(255,255,255,0.55); font-size:${isMobile ? '11px' : '12px'}; line-height: 1.35;">
-                    Если выбрать повтор — задание будет создаваться автоматически по расписанию.
+                <div style="margin-top: 10px; color: rgba(51,70,93,0.65); font-size:${isMobile ? '11px' : '12px'}; line-height: 1.4;">
+                    💡 Если выбрать повтор — задание будет автоматически создаваться по расписанию
                 </div>
             </div>
 
-            <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:20px;">
-                <button id="task-cancel-editor" style="padding:${isMobile ? '10px 20px' : '12px 28px'}; border-radius:40px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.2); color:rgba(255,255,255,0.8); cursor:pointer; font-size:${isMobile ? '13px' : '15px'};">Отмена</button>
-                <button id="task-save-editor" style="padding:${isMobile ? '10px 24px' : '12px 32px'}; border-radius:40px; background:linear-gradient(135deg, #4ecca3, #2c8f6e); border:none; color:white; cursor:pointer; font-size:${isMobile ? '13px' : '15px'};">Создать</button>
+            <div style="display:flex; gap:12px; justify-content:flex-end; margin-top:28px;">
+                <button id="task-cancel-editor" style="padding:${isMobile ? '12px 24px' : '14px 32px'}; border-radius:40px; background:rgba(111,186,255,0.15); border:1px solid rgba(111,186,255,0.4); color:#33465d; cursor:pointer; font-size:${isMobile ? '14px' : '15px'}; font-weight:500; transition:0.2s;">Отмена</button>
+                <button id="task-save-editor" style="padding:${isMobile ? '12px 28px' : '14px 36px'}; border-radius:40px; background:linear-gradient(135deg, #6fbaff, #a8d8ff); border:none; color:#fff; cursor:pointer; font-size:${isMobile ? '14px' : '15px'}; font-weight:600; transition:0.2s; box-shadow: 0 4px 12px rgba(111,186,255,0.4);">Создать</button>
             </div>
         </div>
     `;
     
     document.body.appendChild(modal);
     
+    // Добавляем hover эффекты
+    const saveBtn = modal.querySelector('#task-save-editor');
+    const cancelBtn = modal.querySelector('#task-cancel-editor');
+    
+    if (saveBtn) {
+        saveBtn.onmouseover = () => saveBtn.style.transform = 'scale(1.02)';
+        saveBtn.onmouseout = () => saveBtn.style.transform = 'scale(1)';
+    }
+    if (cancelBtn) {
+        cancelBtn.onmouseover = () => cancelBtn.style.background = 'rgba(111,186,255,0.25)';
+        cancelBtn.onmouseout = () => cancelBtn.style.background = 'rgba(111,186,255,0.15)';
+    }
+    
+    // Закрытие по клику на фон
     modal.addEventListener('click', (e) => {
         if (e.target === modal) modal.remove();
     });
@@ -973,6 +990,9 @@ setupInput() {
     const extraWrap = modal.querySelector('#task-recur-extra-editor');
     const dowsWrap = modal.querySelector('#task-dows-editor');
     const runAtInput = modal.querySelector('#task-runat-editor');
+
+    // Фокус на поле ввода
+    if (titleInput) setTimeout(() => titleInput.focus(), 100);
 
     function updateRecurrenceUI() {
         const v = recurrenceSelect?.value || 'none';
@@ -1010,8 +1030,11 @@ setupInput() {
     };
     
     modal.querySelector('#task-save-editor').onclick = async () => {
-        const title = titleInput.value.trim();
-        if (!title) { alert('Введите название задания'); return; }
+        const title = titleInput?.value.trim();
+        if (!title) { 
+            alert('Введите название задания'); 
+            return; 
+        }
         
         let assignedTo = presetAssignedTo;
         if (!assignedTo) {
@@ -1019,19 +1042,21 @@ setupInput() {
             assignedTo = assignedToSelect ? assignedToSelect.value || null : null;
         }
         
-        const bonus = parseInt(bonusInput.value) || 10;
-        const description = descInput.value.trim();
-         console.log('📤 ДАННЫЕ ДЛЯ ОТПРАВКИ:', {
-        itemKey: itemKey,
-        itemInstanceId: itemInstanceId,
-        title: title,
-        assignedTo: assignedTo
-    });
+        const bonus = parseInt(bonusInput?.value) || 10;
+        const description = descInput?.value.trim();
+        
+        console.log('📤 ДАННЫЕ ДЛЯ ОТПРАВКИ:', {
+            itemKey: itemKey,
+            itemInstanceId: itemInstanceId,
+            title: title,
+            assignedTo: assignedTo
+        });
+        
         try {
             const recurrence = recurrenceSelect?.value || 'none';
             if (recurrence && recurrence !== 'none') {
                 const tzOffset = -new Date().getTimezoneOffset();
-                const scheduleType = recurrence; // daily | weekly | once
+                const scheduleType = recurrence;
                 let daysOfWeek = undefined;
                 let runAt = undefined;
                 if (scheduleType === 'weekly') {
@@ -1131,7 +1156,7 @@ setupInput() {
             const marker = this.add.circle(sprite.x, sprite.y - 35, 16, 0xe94560)
                 .setStrokeStyle(2, 0xffffff).setDepth(100);
             const text = this.add.text(sprite.x, sprite.y - 35, visibleTasks.length.toString(), {
-                fontSize: '12px', fill: '#ffffff', fontStyle: 'bold'
+                fontSize: '12px', fill: '#33465d', fontStyle: 'bold'
             }).setOrigin(0.5).setDepth(101);
             
             marker.setInteractive({ useHandCursor: true });
@@ -1166,7 +1191,7 @@ showTaskModalForItem(sprite, tasks) {
         const statusIcon = task.status === 'completed' ? '✅' : '⏳';
         tasksHtml += `
             <div style="background: rgba(15,25,35,0.6); border-radius: 14px; padding: 14px; margin-bottom: 10px; border-left: 3px solid ${task.status === 'completed' ? '#4ecca3' : '#e94560'};">
-                <div style="font-weight: 700; color: #ffffff; display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <div style="font-weight: 700; color: #33465d; display: flex; justify-content: space-between; margin-bottom: 8px;">
                     <span>${statusIcon} ${this.escapeHtml(task.title)}</span>
                     <span style="color: #ffd700;">💰 ${task.bonus}</span>
                 </div>
@@ -1382,8 +1407,8 @@ createInstruction() {
     
     this.instructionText = this.add.text(640, this.isMobile ? 720 : 750, text, {
         fontSize: this.isMobile ? '10px' : '11px',
-        color: '#ffffff',
-        backgroundColor: '#000000aa',
+        color: '#e7e8e9',
+        backgroundColor: '#040548aa',
         padding: { x: 10, y: 5 }
     }).setOrigin(0.5).setDepth(1000);
 }
@@ -1536,7 +1561,7 @@ createInstruction() {
             btn.style.cssText = `
                 width: 44px; height: 44px; border-radius: 50%;
                 background: rgba(78, 204, 163, 0.2); border: 1px solid rgba(78, 204, 163, 0.5);
-                color: white; font-size: 20px; cursor: pointer;
+                color: #33465d; font-size: 20px; cursor: pointer;
                 display: flex; align-items: center; justify-content: center;
             `;
             btn.addEventListener('click', b.action);

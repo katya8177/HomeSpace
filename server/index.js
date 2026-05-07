@@ -242,6 +242,7 @@ app.get('/api/auth/verify', async (req, res) => {
         res.status(401).json({ success: false, error: 'Недействительный токен' });
     }
 });
+
 // =====================================================
 // СЕМЬЯ (FAMILY)
 // =====================================================
@@ -375,71 +376,176 @@ async function ensureTaskSchedulesV2Table() {
     taskSchedulesV2Ready = true;
 }
 
-function parseTimeOfDay(value) {
-    const m = String(value || '').match(/^(\d{1,2}):(\d{2})$/);
-    if (!m) return null;
-    const hh = Number(m[1]);
-    const mm = Number(m[2]);
-    if (!Number.isFinite(hh) || !Number.isFinite(mm)) return null;
-    if (hh < 0 || hh > 23 || mm < 0 || mm > 59) return null;
-    return { hh, mm, str: `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}` };
-}
-
-function normalizeDaysOfWeek(days) {
-    if (!Array.isArray(days)) return [];
-    const out = [];
-    for (const d of days) {
-        const n = Number(d);
-        if (Number.isFinite(n) && n >= 0 && n <= 6) out.push(n);
-    }
-    return Array.from(new Set(out)).sort((a, b) => a - b);
-}
-
-function computeNextRunAtV2({ scheduleType, timeOfDay, daysOfWeek, runAt, timezoneOffsetMin }) {
-    const offset = Number.isFinite(Number(timezoneOffsetMin)) ? Number(timezoneOffsetMin) : 0;
-    const nowUtc = new Date();
-    const nowLocal = new Date(nowUtc.getTime() + offset * 60_000);
-
-    if (scheduleType === 'once') {
-        const dt = runAt ? new Date(runAt) : null;
-        if (!dt || Number.isNaN(dt.getTime())) return null;
-        // runAt приходит в ISO или "YYYY-MM-DDTHH:mm", считаем как локальное время клиента
-        const localTarget = dt;
-        const utcTarget = new Date(localTarget.getTime() - offset * 60_000);
-        if (utcTarget <= nowUtc) return null;
-        return utcTarget;
-    }
-
-    const t = parseTimeOfDay(timeOfDay);
-    if (!t) return null;
-
-    if (scheduleType === 'daily') {
-        const candLocal = new Date(nowLocal);
-        candLocal.setSeconds(0, 0);
-        candLocal.setHours(t.hh, t.mm, 0, 0);
-        if (candLocal <= nowLocal) candLocal.setDate(candLocal.getDate() + 1);
-        return new Date(candLocal.getTime() - offset * 60_000);
-    }
-
-    if (scheduleType === 'weekly') {
-        const days = normalizeDaysOfWeek(daysOfWeek);
-        if (!days.length) return null;
-
-        // перебираем ближайшие 7 дней и выбираем первый подходящий
-        for (let i = 0; i < 14; i++) {
-            const candLocal = new Date(nowLocal);
-            candLocal.setDate(candLocal.getDate() + i);
-            candLocal.setSeconds(0, 0);
-            candLocal.setHours(t.hh, t.mm, 0, 0);
-            const dow = candLocal.getDay(); // 0..6
-            if (!days.includes(dow)) continue;
-            if (candLocal <= nowLocal) continue;
-            return new Date(candLocal.getTime() - offset * 60_000);
+// Функция отправки уведомления от бота в личный чат
+async function sendBotNotification(userId, familyId, title, message, taskId = null) {
+    try {
+        const botMessageId = generateUUID();
+        const botName = '🤖 Бот-помощник';
+        const botAvatar = '🤖';
+        
+        await query(
+            `INSERT INTO chat_messages (id, family_id, user_id, user_name, user_avatar, message, type, recipient_id, is_read, message_type, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, 'private', ?, 0, 'text', NOW())`,
+            [botMessageId, familyId, null, botName, botAvatar, message, userId]
+        );
+        
+        console.log(`🤖 Бот отправил уведомление пользователю ${userId}: ${title}`);
+        
+        // Отправляем через WebSocket если есть экземпляр io
+        if (global.io) {
+            global.io.to(`user:${userId}`).emit('new-task-notification', {
+                taskId: taskId,
+                title: title,
+                message: message,
+                type: 'task_ready'
+            });
         }
-        return null;
+        
+        return true;
+    } catch (error) {
+        console.error('❌ Ошибка отправки уведомления бота:', error);
+        return false;
     }
+}
 
-    return null;
+// ПРОЦЕССОР АВТОЗАДАНИЙ - ИСПРАВЛЕННАЯ ВЕРСИЯ
+async function processDueSchedules() {
+    try {
+        await ensureTaskSchedulesV2Table();
+        
+        const due = await query(
+            `SELECT * FROM task_schedules_v2 
+             WHERE active = 1 
+               AND next_run_at IS NOT NULL
+               AND next_run_at <= NOW()
+             ORDER BY next_run_at ASC`
+        );
+        
+        console.log(`⏰ Проверка расписаний: найдено ${due.length} автозаданий для выполнения`);
+        
+        for (const s of due) {
+            console.log(`⏰ Обработка: ${s.title}, type: ${s.schedule_type}, next_run_at: ${s.next_run_at}`);
+            
+            // Проверяем, не создано ли уже задание
+            const existingTask = await query(
+                `SELECT id FROM tasks WHERE schedule_parent_id = ? AND status != 'completed'`,
+                [s.id]
+            );
+            
+            if (existingTask.length > 0) {
+                console.log(`⏭️ Пропускаем ${s.title} — задание уже существует`);
+                
+                // Всё равно обновляем next_run_at для повторяющихся
+                if (s.schedule_type === 'daily') {
+                    let nextRun = new Date(s.next_run_at);
+                    nextRun.setDate(nextRun.getDate() + 1);
+                    await query(`UPDATE task_schedules_v2 SET next_run_at = ? WHERE id = ?`, [nextRun, s.id]);
+                } else if (s.schedule_type === 'weekly') {
+                    let nextRun = calculateNextWeeklyRun(s);
+                    await query(`UPDATE task_schedules_v2 SET next_run_at = ? WHERE id = ?`, [nextRun, s.id]);
+                }
+                continue;
+            }
+            
+            // Создаём обычное задание
+            const taskId = generateUUID();
+            await query(
+                `INSERT INTO tasks (id, family_id, created_by, assigned_to, title, description, bonus, 
+                  item_key, item_instance_id, status, schedule_parent_id, created_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, NOW())`,
+                [taskId, s.family_id, s.created_by, s.assigned_to, 
+                 s.title, s.description || '', s.bonus || 10, 
+                 s.item_key, s.item_instance_id, s.id]
+            );
+            
+            console.log(`✅ Создано задание: ${s.title} в ${new Date().toLocaleString()}`);
+            
+            // Отправляем уведомление
+            if (s.assigned_to && s.assigned_to !== s.created_by) {
+                const notificationMessage = `📋 Новое задание!\n\n**${s.title}**\n💰 Бонус: ${s.bonus || 10}\n\nЗадание появилось в твоём списке!`;
+                await sendBotNotification(s.assigned_to, s.family_id, s.title, notificationMessage, taskId);
+            }
+            
+            // Обновляем расписание для следующего раза
+            if (s.schedule_type === 'once') {
+                await query(`UPDATE task_schedules_v2 SET active = 0, last_run_at = NOW() WHERE id = ?`, [s.id]);
+                console.log(`⏹️ Однократное автозадание деактивировано: ${s.title}`);
+            } else if (s.schedule_type === 'daily') {
+                let nextRun = new Date(s.next_run_at);
+                nextRun.setDate(nextRun.getDate() + 1);
+                await query(`UPDATE task_schedules_v2 SET last_run_at = NOW(), next_run_at = ? WHERE id = ?`, [nextRun, s.id]);
+                console.log(`🔄 Следующий запуск daily: ${nextRun}`);
+            } else if (s.schedule_type === 'weekly') {
+                let nextRun = calculateNextWeeklyRun(s);
+                await query(`UPDATE task_schedules_v2 SET last_run_at = NOW(), next_run_at = ? WHERE id = ?`, [nextRun, s.id]);
+                console.log(`🔄 Следующий запуск weekly: ${nextRun}`);
+            }
+        }
+        
+    } catch (e) {
+        console.error('⚠️ Ошибка процессинга автозаданий:', e);
+    }
+}
+
+function calculateNextWeeklyRun(schedule) {
+    try {
+        let days = [];
+        if (schedule.days_of_week_json) {
+            try {
+                days = JSON.parse(schedule.days_of_week_json);
+            } catch(e) { days = []; }
+        }
+        
+        if (!days.length) {
+            let next = new Date(schedule.next_run_at);
+            next.setDate(next.getDate() + 7);
+            return next;
+        }
+        
+        const [hours, minutes] = (schedule.time_of_day || '09:00').split(':').map(Number);
+        
+        const now = new Date();
+        let nextRun = new Date(now);
+        nextRun.setHours(hours, minutes, 0, 0);
+        
+        const currentDay = now.getDay();
+        console.log(`📅 Сегодня: ${currentDay}, выбранные дни: ${days.join(', ')}, сейчас: ${now.toLocaleString()}`);
+        
+        // ПРОВЕРЯЕМ СЕГОДНЯШНИЙ ДЕНЬ
+        if (days.includes(currentDay)) {
+            // Если сегодня подходит И время ещё не наступило
+            if (nextRun > now) {
+                console.log(`✅ Сегодня (${currentDay}) подходит, задание в ${hours}:${minutes}`);
+                return nextRun;
+            } else {
+                console.log(`⚠️ Сегодня (${currentDay}) подходит, но время уже прошло, ищем следующий день`);
+            }
+        }
+        
+        // Ищем следующий день
+        for (let i = 1; i <= 7; i++) {
+            const nextDay = (currentDay + i) % 7;
+            if (days.includes(nextDay)) {
+                nextRun = new Date(now);
+                nextRun.setDate(now.getDate() + i);
+                nextRun.setHours(hours, minutes, 0, 0);
+                console.log(`📅 Следующий день через ${i} дней: ${nextDay}, дата: ${nextRun.toLocaleString()}`);
+                return nextRun;
+            }
+        }
+        
+        // Если не нашли (маловероятно)
+        let fallback = new Date(now);
+        fallback.setDate(now.getDate() + 7);
+        fallback.setHours(hours, minutes, 0, 0);
+        return fallback;
+        
+    } catch (error) {
+        console.error('Ошибка вычисления следующего weekly запуска:', error);
+        let fallback = new Date(schedule.next_run_at);
+        fallback.setDate(fallback.getDate() + 7);
+        return fallback;
+    }
 }
 
 app.get('/api/tasks', authenticate, async (req, res) => {
@@ -467,70 +573,25 @@ app.get('/api/tasks', authenticate, async (req, res) => {
         
         if (status) { sql += ' AND t.status = ?'; params.push(status); }
         if (assignedTo) { sql += ' AND t.assigned_to = ?'; params.push(assignedTo); }
-        if (createdBy) { sql += ' AND t.created_by = ?'; params.push(createdBy); }  // ← ДОБАВИТЬ
+        if (createdBy) { sql += ' AND t.created_by = ?'; params.push(createdBy); }
         if (itemKey) { sql += ' AND t.item_key = ?'; params.push(itemKey); }
         
         sql += ' ORDER BY t.created_at DESC';
         
         const tasks = await query(sql, params);
         res.json(tasks);
+        
     } catch (error) {
         console.error('Ошибка получения заданий:', error);
         res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
-
-app.post('/api/tasks', authenticate, async (req, res) => {
-    try {
-        if (req.user.role === 'child') {
-            return res.status(403).json({ error: 'Ребёнок не может создавать задания' });
-        }
-        
-        const { title, description, bonus, assignedTo, itemKey, itemInstanceId, dueDate } = req.body;
-
-        console.log('📥 СЕРВЕР ПОЛУЧИЛ item_instance_id:', itemInstanceId);  // ← ДОБАВЬ
-
-        const taskId = generateUUID();
-        const familyId = req.user.familyId || null;
-        
-        await query(
-            `INSERT INTO tasks (id, family_id, created_by, assigned_to, title, description, bonus, item_key, item_instance_id, due_date)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [taskId, familyId, req.user.id, assignedTo || null, title, description || '', bonus || 10, 
-             itemKey || null, itemInstanceId || null, dueDate || null]
-        );
-
-        const tasks = await query(
-            `SELECT t.*, u.name as assigned_to_name, creator.name as created_by_name
-             FROM tasks t
-             LEFT JOIN users u ON t.assigned_to = u.id
-             LEFT JOIN users creator ON t.created_by = creator.id
-             WHERE t.id = ?`,
-            [taskId]
-        );
-
-        console.log('📥 СОХРАНЕНО В БД item_instance_id:', tasks[0]?.item_instance_id);  // ← ДОБАВЬ
-
-        res.status(201).json(tasks[0]);
-        
-    } catch (error) {
-        console.error('Ошибка создания задания:', error);
-        res.status(500).json({ error: 'Ошибка сервера' });
-    }
-});
-
-// =====================================================
-// АВТОЗАДАНИЯ (TASK SCHEDULES)
-// =====================================================
+// GET /api/task-schedules - ПОЛУЧЕНИЕ ВСЕХ АВТОЗАДАНИЙ
 app.get('/api/task-schedules', authenticate, async (req, res) => {
     try {
-        try { await ensureTaskSchedulesV2Table(); }
-        catch (e) {
-            console.error('Ошибка ensureTaskSchedulesV2Table (GET):', e);
-            return res.status(500).json({ error: `Не удалось подготовить таблицу автозаданий: ${e?.message || e}` });
-        }
+        await ensureTaskSchedulesV2Table();
         const params = [];
-        let sql = `SELECT * FROM task_schedules_v2 WHERE schedule_type IS NOT NULL`;
+        let sql = `SELECT * FROM task_schedules_v2 WHERE active = 1`;
         if (req.user.familyId) {
             sql += ` AND family_id = ?`;
             params.push(req.user.familyId);
@@ -540,22 +601,18 @@ app.get('/api/task-schedules', authenticate, async (req, res) => {
         }
         sql += ` ORDER BY created_at DESC`;
         const rows = await query(sql, params);
+        console.log(`📋 Найдено автозаданий: ${rows.length}`);
         res.json(rows);
     } catch (error) {
         console.error('Ошибка получения автозаданий:', error);
         res.status(500).json({ error: error?.message || 'Ошибка сервера' });
     }
 });
-
+// POST /api/task-schedules (СОЗДАНИЕ АВТОЗАДАНИЯ - ИСПРАВЛЕНА ВЕРСИЯ)
 app.post('/api/task-schedules', authenticate, async (req, res) => {
     try {
         if (req.user.role === 'child') {
             return res.status(403).json({ error: 'Ребёнок не может создавать автозадания' });
-        }
-        try { await ensureTaskSchedulesV2Table(); }
-        catch (e) {
-            console.error('Ошибка ensureTaskSchedulesV2Table (POST):', e);
-            return res.status(500).json({ error: `Не удалось подготовить таблицу автозаданий: ${e?.message || e}` });
         }
 
         const {
@@ -572,32 +629,129 @@ app.post('/api/task-schedules', authenticate, async (req, res) => {
             timezoneOffsetMin
         } = req.body || {};
 
-        const allowed = ['daily', 'weekly', 'once'];
-        if (!allowed.includes(scheduleType)) return res.status(400).json({ error: 'Некорректный scheduleType' });
+        console.log('📥 СОЗДАНИЕ АВТОЗАДАНИЯ:', { title, scheduleType, timeOfDay, daysOfWeek, runAt, itemKey, itemInstanceId });
 
-        const next = computeNextRunAtV2({ scheduleType, timeOfDay, daysOfWeek, runAt, timezoneOffsetMin });
-        if (!next) return res.status(400).json({ error: 'Некорректные параметры расписания' });
+        // Вычисляем next_run_at
+        let nextRunAt = null;
+        let runAtValue = null;  // ← ДЛЯ once — дата, для daily/weekly — NULL
+        
+        if (scheduleType === 'once') {
+            if (!runAt) {
+                return res.status(400).json({ error: 'Для once требуется runAt' });
+            }
+            nextRunAt = new Date(runAt);
+            if (isNaN(nextRunAt.getTime())) {
+                return res.status(400).json({ error: 'Неверный формат runAt' });
+            }
+            if (nextRunAt <= new Date()) {
+                return res.status(400).json({ error: 'Дата и время не могут быть в прошлом' });
+            }
+            runAtValue = nextRunAt;  // ← для once сохраняем дату
+        } else if (scheduleType === 'daily') {
+            if (!timeOfDay || !timeOfDay.match(/^(\d{1,2}):(\d{2})$/)) {
+                return res.status(400).json({ error: 'Для daily требуется корректное timeOfDay (HH:MM)' });
+            }
+            const [hours, minutes] = timeOfDay.split(':').map(Number);
+            nextRunAt = new Date();
+            nextRunAt.setHours(hours, minutes, 0, 0);
+            if (nextRunAt <= new Date()) {
+                nextRunAt.setDate(nextRunAt.getDate() + 1);
+            }
+            // runAtValue остаётся NULL для daily
+        } else if (scheduleType === 'weekly') {
+            if (!timeOfDay || !timeOfDay.match(/^(\d{1,2}):(\d{2})$/)) {
+                return res.status(400).json({ error: 'Для weekly требуется корректное timeOfDay (HH:MM)' });
+            }
+            let days = [];
+            if (Array.isArray(daysOfWeek)) {
+                days = daysOfWeek;
+            } else if (typeof daysOfWeek === 'string') {
+                days = daysOfWeek.split(',').map(Number);
+            }
+            if (!days.length) {
+                return res.status(400).json({ error: 'Для weekly требуется daysOfWeek' });
+            }
+            
+            const [hours, minutes] = timeOfDay.split(':').map(Number);
+            nextRunAt = new Date();
+            nextRunAt.setHours(hours, minutes, 0, 0);
+            
+            const currentDay = new Date().getDay();
+            let daysToAdd = 0;
+            let found = false;
+            
+            for (let i = 1; i <= 7; i++) {
+                const nextDay = (currentDay + i) % 7;
+                if (days.includes(nextDay)) {
+                    daysToAdd = i;
+                    found = true;
+                    break;
+                }
+            }
+            
+            if (!found && days.includes(currentDay)) {
+                if (nextRunAt <= new Date()) {
+                    daysToAdd = 7;
+                }
+            } else if (!found) {
+                const sortedDays = [...days].sort();
+                for (const d of sortedDays) {
+                    daysToAdd = (d - currentDay + 7) % 7;
+                    if (daysToAdd > 0) break;
+                    if (daysToAdd === 0) daysToAdd = 7;
+                }
+            }
+            
+            nextRunAt.setDate(nextRunAt.getDate() + daysToAdd);
+            
+            if (nextRunAt <= new Date()) {
+                nextRunAt.setDate(nextRunAt.getDate() + 7);
+            }
+            // runAtValue остаётся NULL для weekly
+        } else {
+            return res.status(400).json({ error: 'Неверный тип расписания' });
+        }
+
+        if (!nextRunAt) {
+            return res.status(400).json({ error: 'Не удалось вычислить next_run_at' });
+        }
 
         const scheduleId = generateUUID();
         const familyId = req.user.familyId || null;
+        
+        const daysOfWeekJson = scheduleType === 'weekly' && daysOfWeek ? JSON.stringify(daysOfWeek) : null;
 
+        // ВАЖНО: run_at = runAtValue (NULL для daily/weekly)
         await query(
-            `INSERT INTO task_schedules_v2
-(id, family_id, created_by, assigned_to, title, description, bonus, item_key, item_instance_id, schedule_type, days_of_week, run_at, run_date)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO task_schedules_v2 
+             (id, family_id, created_by, assigned_to, title, description, bonus, 
+              item_key, item_instance_id, schedule_type, time_of_day, days_of_week_json,
+              run_at, next_run_at, timezone_offset_min, active, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW())`,
             [
                 scheduleId, familyId, req.user.id, assignedTo || null,
-    title, description || '', bonus || 10,
-    itemKey || null, itemInstanceId || null,
-    scheduleType,
-    scheduleType === 'weekly' ? normalizeDaysOfWeek(daysOfWeek).join(',') : null,
-    scheduleType === 'once' ? new Date(runAt) : parseTimeOfDay(timeOfDay)?.str || '09:00:00',
-    scheduleType === 'once' ? new Date(runAt).toISOString().split('T')[0] : null
+                title, description || '', bonus || 10,
+                itemKey || null, itemInstanceId || null,
+                scheduleType,
+                scheduleType === 'once' ? null : timeOfDay,  // ← для once time_of_day = NULL
+                daysOfWeekJson,
+                runAtValue,  // ← для once — дата, для daily/weekly — NULL
+                nextRunAt,
+                timezoneOffsetMin || 0
             ]
+            
         );
+console.log('📥 СОЗДАНИЕ АВТОЗАДАНИЯ:', { 
+    title, scheduleType, timeOfDay, 
+    daysOfWeek: daysOfWeek, 
+    daysOfWeekJson: daysOfWeek ? JSON.stringify(daysOfWeek) : null,
+    runAt 
+});
+        console.log(`✅ Автозадание создано: ${title}, next_run_at: ${nextRunAt}, run_at: ${runAtValue}`);
 
         const rows = await query('SELECT * FROM task_schedules_v2 WHERE id = ?', [scheduleId]);
         res.status(201).json(rows[0]);
+        
     } catch (error) {
         console.error('Ошибка создания автозадания:', error);
         res.status(500).json({ error: error?.message || 'Ошибка сервера' });
@@ -606,23 +760,14 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 
 app.delete('/api/task-schedules/:id', authenticate, async (req, res) => {
     try {
-        try { await ensureTaskSchedulesV2Table(); }
-        catch (e) {
-            console.error('Ошибка ensureTaskSchedulesV2Table (DELETE):', e);
-            return res.status(500).json({ error: `Не удалось подготовить таблицу автозаданий: ${e?.message || e}` });
-        }
         const scheduleId = req.params.id;
-        let sql = `UPDATE task_schedules_v2 SET active = 0 WHERE id = ?`;
-        const params = [scheduleId];
-        if (req.user.familyId) {
-            sql += ` AND family_id = ?`;
-            params.push(req.user.familyId);
-        } else {
-            sql += ` AND created_by = ?`;
-            params.push(req.user.id);
+        
+        const result = await query(`DELETE FROM task_schedules_v2 WHERE id = ? AND created_by = ?`, 
+            [scheduleId, req.user.id]);
+        
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Автозадание не найдено' });
         }
-        const result = await query(sql, params);
-        if (result.affectedRows === 0) return res.status(404).json({ error: 'Автозадание не найдено' });
         res.json({ success: true });
     } catch (error) {
         console.error('Ошибка удаления автозадания:', error);
@@ -726,7 +871,7 @@ app.delete('/api/tasks/:id', authenticate, async (req, res) => {
 });
 
 // =====================================================
-// ЖЕЛАНИЯ (WISHES)
+// ЖЕЛАНИЯ (WISHES) - сокращено для краткости
 // =====================================================
 
 app.get('/api/wishes', authenticate, async (req, res) => {
@@ -916,15 +1061,12 @@ app.delete('/api/wishes/:id', authenticate, async (req, res) => {
         let sql = 'DELETE FROM wishes WHERE id = ?';
         const params = [wishId];
         
-        // Для родителя/админа — можно удалять любые желания в семье
         if (req.user.role === 'parent' || req.user.role === 'admin') {
             if (req.user.familyId) {
                 sql += ' AND family_id = ?';
                 params.push(req.user.familyId);
             }
-            // Если нет семьи, то просто удаляем по id (родитель без семьи)
         } else {
-            // Обычный пользователь может удалять только свои желания
             sql += ' AND created_by = ?';
             params.push(req.user.id);
         }
@@ -939,8 +1081,9 @@ app.delete('/api/wishes/:id', authenticate, async (req, res) => {
         res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
+
 // =====================================================
-// ЧАТ (CHAT)
+// ЧАТ (CHAT) - сокращено для краткости
 // =====================================================
 
 app.get('/api/chat', authenticate, async (req, res) => {
@@ -951,9 +1094,10 @@ app.get('/api/chat', authenticate, async (req, res) => {
         
         let sql = `
             SELECT id, family_id, user_id, user_name, user_avatar, message, type, recipient_id, is_read, 
-                   message_type, voice_url, voice_duration, created_at
+                   message_type, voice_url, voice_duration, created_at, is_edited, edited_at, 
+                   original_message, deleted_by_user, deleted_for_all
             FROM chat_messages 
-            WHERE family_id = ?
+            WHERE family_id = ? AND deleted_for_all = FALSE
         `;
         const params = [req.user.familyId];
         
@@ -968,7 +1112,15 @@ app.get('/api/chat', authenticate, async (req, res) => {
         params.push(parseInt(limit));
         
         const messages = await query(sql, params);
-        res.json(messages);
+        
+        const filteredMessages = messages.filter(msg => {
+            if (msg.deleted_by_user && msg.user_id === req.user.id) {
+                return false;
+            }
+            return true;
+        });
+        
+        res.json(filteredMessages);
         
     } catch (error) {
         console.error('❌ Ошибка получения сообщений:', error);
@@ -1020,7 +1172,6 @@ app.post('/api/chat', authenticate, async (req, res) => {
     }
 });
 
-// ========== ГОЛОСОВЫЕ СООБЩЕНИЯ ==========
 app.post('/api/chat/voice', authenticate, voiceUpload.single('audio'), async (req, res) => {
     try {
         const { type = 'family', recipientId, duration } = req.body;
@@ -1061,6 +1212,88 @@ app.post('/api/chat/voice', authenticate, voiceUpload.single('audio'), async (re
         console.error('❌ Ошибка загрузки голосового сообщения:', error);
         if (req.file) fs.unlink(req.file.path, () => {});
         res.status(500).json({ error: 'Ошибка загрузки голосового сообщения' });
+    }
+});
+
+app.patch('/api/chat/:messageId', authenticate, async (req, res) => {
+    try {
+        const { messageId } = req.params;
+        const { message } = req.body;
+
+        if (!message || message.trim() === '') {
+            return res.status(400).json({ error: 'Сообщение не может быть пустым' });
+        }
+
+        const messages = await query('SELECT * FROM chat_messages WHERE id = ?', [messageId]);
+        
+        if (messages.length === 0) {
+            return res.status(404).json({ error: 'Сообщение не найдено' });
+        }
+
+        const msg = messages[0];
+
+        if (msg.user_id !== req.user.id) {
+            return res.status(403).json({ error: 'Вы не можете редактировать это сообщение' });
+        }
+
+        const originalMessage = msg.original_message || msg.message;
+
+        await query(
+            `UPDATE chat_messages 
+             SET message = ?, is_edited = TRUE, edited_at = NOW(), original_message = ?
+             WHERE id = ?`,
+            [message.trim(), originalMessage, messageId]
+        );
+
+        const updatedMessages = await query('SELECT * FROM chat_messages WHERE id = ?', [messageId]);
+        res.json(updatedMessages[0]);
+
+    } catch (error) {
+        console.error('❌ Ошибка редактирования сообщения:', error);
+        res.status(500).json({ error: 'Ошибка редактирования сообщения' });
+    }
+});
+
+app.delete('/api/chat/:messageId', authenticate, async (req, res) => {
+    try {
+        const { messageId } = req.params;
+        const { deleteForAll = false } = req.body;
+
+        const messages = await query('SELECT * FROM chat_messages WHERE id = ?', [messageId]);
+        
+        if (messages.length === 0) {
+            return res.status(404).json({ error: 'Сообщение не найдено' });
+        }
+
+        const msg = messages[0];
+        const isAuthor = msg.user_id === req.user.id;
+        const isParent = req.user.role === 'parent' || req.user.role === 'admin';
+
+        if (!isAuthor && !isParent) {
+            return res.status(403).json({ error: 'Вы не можете удалить это сообщение' });
+        }
+
+        if (deleteForAll) {
+            if (!isAuthor && !isParent) {
+                return res.status(403).json({ error: 'Только автор или родитель может удалить сообщение для всех' });
+            }
+
+            await query(
+                'UPDATE chat_messages SET deleted_for_all = TRUE, deleted_at = NOW() WHERE id = ?',
+                [messageId]
+            );
+        } else {
+            await query(
+                'UPDATE chat_messages SET deleted_by_user = TRUE WHERE id = ? AND user_id = ?',
+                [messageId, req.user.id]
+            );
+        }
+
+        res.json({ success: true, message: 'Сообщение удалено' });
+
+    } catch (error) {
+        console.error('❌ Ошибка удаления сообщения:', error);
+        res.status(500).json({ error: 'Ошибка удаления сообщения' });
     }
 });
 
@@ -1244,7 +1477,6 @@ app.put('/api/rooms/:roomId', authenticate, async (req, res) => {
         
         const roomData = { items: items || [], background: background || 'bg_default' };
         const dataToSave = JSON.stringify(roomData);
-        console.log('💾 Сохраняем в БД:', dataToSave.substring(0, 100) + '...');
         
         await query(
             `UPDATE rooms SET name = ?, background = ?, data = ?, updated_at = NOW() WHERE id = ?`,
@@ -1381,6 +1613,7 @@ async function ensureChildFamilyRooms({ userId, familyId, userName }) {
         });
     }
 }
+
 // =====================================================
 // ВОССТАНОВЛЕНИЕ ПАРОЛЯ
 // =====================================================
@@ -1622,87 +1855,21 @@ async function startServer() {
             credentials: true
         }
     });
+    
+    global.io = io;
 
     const BOT_ID = '00000000-0000-0000-0000-000000000001';
     await query(`INSERT IGNORE INTO users (id, email, password_hash, name, avatar, role, family_id, bonuses, created_at) 
                  VALUES (?, 'bot@homespace.local', '', '🤖 Бот-помощник', '🤖', 'bot', NULL, 0, NOW())`, [BOT_ID]);
 
-    // Автозадания: таблица + процессор расписания
     try {
         await ensureTaskSchedulesV2Table();
     } catch (e) {
         console.error('⚠️ Не удалось подготовить task_schedules_v2:', e?.message || e);
     }
 
-async function processDueSchedules() {
-    try {
-        await ensureTaskSchedulesV2Table();
-        // Получаем только те расписания, которые нужно запустить сейчас
-        const due = await query(
-            `SELECT * FROM task_schedules_v2 
-             WHERE schedule_type IS NOT NULL 
-               AND active = 1 
-               AND next_run_at <= NOW() 
-             ORDER BY next_run_at ASC LIMIT 50`
-        );
-        for (const s of due) {
-            // Проверяем, не создано ли уже задание для этого расписания за текущий период
-            const [recent] = await query(
-                `SELECT COUNT(*) as cnt FROM tasks 
-                 WHERE created_by = ? 
-                   AND title = ? 
-                   AND created_at > DATE_SUB(NOW(), INTERVAL 23 HOUR)`,
-                [s.created_by, s.title || 'Автозадание']
-            );
-            
-            if (recent.cnt > 0 && s.schedule_type !== 'once') {
-                // Пропускаем, если задание уже создано за последние 23 часа (для daily)
-                // Обновляем next_run_at на следующие сутки
-                const nextDay = new Date();
-                nextDay.setDate(nextDay.getDate() + 1);
-                nextDay.setHours(parseTimeOfDay(s.time_of_day)?.hh || 9, parseTimeOfDay(s.time_of_day)?.mm || 0, 0, 0);
-                await query(`UPDATE task_schedules_v2 SET next_run_at = ? WHERE id = ?`, [nextDay, s.id]);
-                continue;
-            }
-            
-            // Создаем задание...
-            const taskId = generateUUID();
-            await query(
-                `INSERT INTO tasks (id, family_id, created_by, assigned_to, title, description, bonus, item_key, item_instance_id, due_date)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                [taskId, s.family_id || null, s.created_by, s.assigned_to || null, 
-                 s.title || 'Автозадание', s.description || '', s.bonus || 10, 
-                 s.item_key || null, s.item_instance_id || null, new Date()]
-            );
-            
-            // Обновляем next_run_at в зависимости от типа расписания
-            if (s.schedule_type === 'once') {
-                await query(`UPDATE task_schedules_v2 SET active = 0, last_run_at = NOW() WHERE id = ?`, [s.id]);
-            } else {
-                let days = [];
-                try { days = s.days_of_week_json ? JSON.parse(s.days_of_week_json) : []; } catch { days = []; }
-                const next = computeNextRunAtV2({
-                    scheduleType: s.schedule_type,
-                    timeOfDay: s.time_of_day,
-                    daysOfWeek: days,
-                    runAt: s.run_at,
-                    timezoneOffsetMin: s.timezone_offset_min
-                });
-                if (next) {
-                    await query(`UPDATE task_schedules_v2 SET last_run_at = NOW(), next_run_at = ? WHERE id = ?`, [next, s.id]);
-                } else {
-                    await query(`UPDATE task_schedules_v2 SET active = 0, last_run_at = NOW() WHERE id = ?`, [s.id]);
-                }
-            }
-        }
-    } catch (e) {
-        console.error('⚠️ Ошибка процессинга автозаданий:', e?.message || e);
-    }
-}
-
-    // Проверяем расписания каждую минуту
-    setInterval(processDueSchedules, 60 * 1000);
-    // И один раз сразу при старте
+    // Запускаем процессор автозаданий каждые 15 секунд
+    setInterval(processDueSchedules, 15 * 1000);
     setTimeout(processDueSchedules, 5000);
 
     io.on('connection', (socket) => {
@@ -1711,8 +1878,9 @@ async function processDueSchedules() {
         socket.on('join-family', async (data) => {
             const { familyId, userId, userName, userAvatar, token } = data;
             socket.join(`family:${familyId}`);
+            socket.join(`user:${userId}`);
             socket.data = { familyId, userId, userName, userAvatar };
-            console.log(`👤 ${userName} (${userId}) присоединился к семье ${familyId}`);
+            console.log(`👤 ${userName} (${userId}) присоединился к семье ${familyId} и своей комнате`);
         });
 
         socket.on('send-message', async (data) => {
@@ -1746,10 +1914,10 @@ async function processDueSchedules() {
             console.log('🔌 Клиент отключён:', socket.id);
         });
     });
-
+    
     server.listen(PORT, () => {
         console.log(`🚀 Сервер запущен на http://localhost:${PORT}`);
-        console.log(`📡 WebSocket готов`);
+        console.log(`📡 WebSocket готов | Интервал автозаданий: 15 сек`);
         console.log(`📝 Регистрация: POST /api/auth/register`);
         console.log(`🔑 Вход: POST /api/auth/login`);
         console.log(`✅ Задания: GET/POST /api/tasks`);

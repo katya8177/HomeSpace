@@ -14,7 +14,7 @@
 
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            background: linear-gradient(135deg, #dcecff 0%, #d3e7ff 100%);
             min-height: 100vh;
             position: relative;
         }
@@ -25,7 +25,7 @@
             position: absolute;
             width: 100%;
             height: 100%;
-            background: radial-gradient(circle at 20% 50%, rgba(78, 204, 163, 0.15) 0%, transparent 50%);
+            background: radial-gradient(circle at 20% 50%, rgba(137, 207, 240, 0.24) 0%, transparent 55%);
             animation: pulse 8s ease-in-out infinite;
             pointer-events: none;
         }
@@ -35,7 +35,7 @@
             position: absolute;
             width: 100%;
             height: 100%;
-            background: radial-gradient(circle at 80% 80%, rgba(255, 215, 0, 0.1) 0%, transparent 50%);
+            background: radial-gradient(circle at 80% 80%, rgba(168, 216, 255, 0.2) 0%, transparent 55%);
             animation: pulse 12s ease-in-out infinite reverse;
             pointer-events: none;
         }
@@ -58,12 +58,12 @@
             position: fixed;
             top: 20px;
             left: 20px;
-            background: rgba(0, 0, 0, 0.6);
+            background: rgba(244, 250, 255, 0.95);
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(78, 204, 163, 0.5);
+            border: 1px solid rgba(137, 207, 240, 0.6);
             border-radius: 40px;
             padding: 10px 20px;
-            color: white;
+            color: #33465d;
             font-size: 16px;
             font-weight: 500;
             cursor: pointer;
@@ -75,8 +75,8 @@
         }
 
         .back-btn:hover {
-            background: rgba(78, 204, 163, 0.3);
-            border-color: #4ecca3;
+            background: rgba(168, 216, 255, 0.3);
+            border-color: #72bde8;
             transform: translateX(-3px);
         }
 
@@ -89,7 +89,7 @@
         .header h1 {
             font-size: 48px;
             font-weight: 800;
-            background: linear-gradient(135deg, #ffd700, #4ecca3);
+            background: linear-gradient(135deg, #4f6988, #33465d);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             text-shadow: 0 2px 10px rgba(0,0,0,0.2);
@@ -97,13 +97,13 @@
         }
 
         .header p {
-            color: rgba(255, 255, 255, 0.7);
+            color: rgba(51, 70, 93, 0.8);
             margin-top: 10px;
         }
 
         /* Панель бонусов */
         .bonus-panel {
-            background: linear-gradient(135deg, rgba(0,0,0,0.5), rgba(78,204,163,0.1));
+            background: linear-gradient(135deg, rgba(211,231,255,0.8), rgba(168,216,255,0.35));
             backdrop-filter: blur(10px);
             border-radius: 30px;
             padding: 20px 30px;
@@ -113,7 +113,7 @@
             align-items: center;
             flex-wrap: wrap;
             gap: 20px;
-            border: 1px solid rgba(255, 215, 0, 0.3);
+            border: 1px solid rgba(137, 207, 240, 0.6);
         }
 
         .user-info {
@@ -125,43 +125,43 @@
         .user-avatar {
             width: 60px;
             height: 60px;
-            background: linear-gradient(135deg, #4ecca3, #ffd700);
+            background: linear-gradient(135deg, #a8d8ff, #89cff0);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 32px;
-            box-shadow: 0 4px 15px rgba(78, 204, 163, 0.3);
+            box-shadow: 0 4px 15px rgba(114, 189, 232, 0.3);
         }
 
         .user-details h3 {
-            color: white;
+            color: #33465d;
             font-size: 18px;
         }
 
         .user-details p {
-            color: rgba(255, 255, 255, 0.6);
+            color: rgba(51, 70, 93, 0.7);
             font-size: 12px;
             margin-top: 4px;
         }
 
         .bonus-card {
-            background: rgba(0, 0, 0, 0.5);
+            background: rgba(211, 231, 255, 0.8);
             border-radius: 20px;
             padding: 10px 25px;
             text-align: center;
-            border: 1px solid #ffd700;
+            border: 1px solid #72bde8;
         }
 
         .bonus-label {
             font-size: 12px;
-            color: rgba(255, 255, 255, 0.6);
+            color: rgba(51, 70, 93, 0.7);
         }
 
         .bonus-value {
             font-size: 36px;
             font-weight: 800;
-            color: #ffd700;
+            color: #33465d;
         }
 
         /* Вкладки */
@@ -174,11 +174,11 @@
         }
 
         .tab-btn {
-            background: rgba(44, 62, 80, 0.8);
-            border: 1px solid rgba(78, 204, 163, 0.3);
+            background: rgba(230, 242, 255, 0.95);
+            border: 1px solid rgba(137, 207, 240, 0.55);
             padding: 12px 30px;
             border-radius: 40px;
-            color: white;
+            color: #33465d;
             font-size: 16px;
             cursor: pointer;
             transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -186,24 +186,24 @@
         }
 
         .tab-btn:hover {
-            border-color: rgba(78, 204, 163, 0.7);
-            background: rgba(78, 204, 163, 0.1);
+            border-color: rgba(114, 189, 232, 0.9);
+            background: rgba(168, 216, 255, 0.3);
             transform: translateY(-2px);
         }
 
         .tab-btn.active {
-            background: linear-gradient(135deg, #4ecca3, #3ba87f);
+            background: rgba(168, 216, 255, 0.45);
             border-color: transparent;
-            box-shadow: 0 4px 20px rgba(78,204,163,0.4);
+            box-shadow: 0 4px 20px rgba(114,189,232,0.35);
         }
 
         /* Кнопка создания */
         .create-wish-btn {
-            background: linear-gradient(135deg, #ffd700, #e6b800);
+            background: linear-gradient(135deg, #a8d8ff, #89cff0);
             border: none;
             padding: 12px 30px;
             border-radius: 40px;
-            color: #1a1a2e;
+            color: #33465d;
             font-size: 16px;
             font-weight: 700;
             cursor: pointer;
@@ -216,7 +216,7 @@
 
         .create-wish-btn:hover {
             transform: scale(1.02);
-            box-shadow: 0 5px 20px rgba(255, 215, 0, 0.4);
+            box-shadow: 0 5px 20px rgba(114, 189, 232, 0.4);
         }
 
         /* Список желаний */
@@ -227,19 +227,19 @@
         }
 
         .wish-card {
-            background: rgba(15, 15, 26, 0.9);
+            background: rgba(226, 240, 255, 0.95);
             backdrop-filter: blur(10px);
             border-radius: 24px;
             padding: 20px;
             border: 2px solid transparent;
             background-clip: padding-box;
-            background-image: linear-gradient(rgba(15, 15, 26, 0.9), rgba(15, 15, 26, 0.9)), linear-gradient(135deg, #4ecca3, #ffd700);
+            background-image: linear-gradient(rgba(226, 240, 255, 0.95), rgba(226, 240, 255, 0.95)), linear-gradient(135deg, #89cff0, #72bde8);
             background-origin: border-box;
             background-clip: padding-box, border-box;
             transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
             position: relative;
             overflow: hidden;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 15px rgba(51,70,93,0.18);
         }
 
         .wish-card::before {
@@ -247,7 +247,7 @@
             position: absolute;
             top: 0; left: 0;
             width: 100%; height: 100%;
-            background: linear-gradient(135deg, rgba(78,204,163,0.1), transparent);
+            background: linear-gradient(135deg, rgba(137,207,240,0.24), transparent);
             pointer-events: none;
             border-radius: 22px;
         }
@@ -255,16 +255,16 @@
         .wish-card:hover {
             transform: translateY(-8px) scale(1.02);
             border-color: transparent;
-            box-shadow: 0 12px 40px rgba(78,204,163,0.4), 0 0 30px rgba(78,204,163,0.2);
+            box-shadow: 0 12px 40px rgba(114,189,232,0.35), 0 0 30px rgba(137,207,240,0.25);
         }
 
         .wish-card.pending {
-            border-left: 4px solid #ffd700;
+            border-left: 4px solid #72bde8;
         }
 
         .wish-card.purchased {
             opacity: 0.7;
-            border-left: 4px solid #4ecca3;
+            border-left: 4px solid #89cff0;
         }
 
         .wish-icon {
@@ -275,21 +275,21 @@
         .wish-title {
             font-size: 20px;
             font-weight: 700;
-            color: white;
+            color: #33465d;
             margin-bottom: 8px;
         }
 
         .wish-description {
             font-size: 13px;
-            color: rgba(255, 255, 255, 0.6);
+            color: rgba(51, 70, 93, 0.72);
             margin-bottom: 15px;
             line-height: 1.4;
         }
         .wish-image img { width: 100%; max-height: 220px; object-fit: cover; border-radius: 12px; margin-bottom: 10px; cursor: pointer; }
         .wish-link { margin: 8px 0; }
-        .wish-link a { color: #4ecca3; text-decoration: none; }
-        .wish-comments { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); }
-        .comment-row { font-size: 12px; color: #ddd; margin-bottom: 6px; }
+        .wish-link a { color: #3f5874; text-decoration: none; }
+        .wish-comments { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(137,207,240,0.35); }
+        .comment-row { font-size: 12px; color: #33465d; margin-bottom: 6px; }
 
         .wish-meta {
             display: flex;
@@ -301,39 +301,39 @@
         }
 
         .wish-price {
-            background: rgba(255, 215, 0, 0.2);
+            background: rgba(168, 216, 255, 0.36);
             padding: 5px 12px;
             border-radius: 20px;
-            color: #ffd700;
+            color: #33465d;
             font-weight: 700;
             font-size: 18px;
         }
 
         .wish-creator {
             font-size: 11px;
-            color: rgba(255, 255, 255, 0.5);
+            color: rgba(51, 70, 93, 0.62);
         }
 
         .wish-status {
             font-size: 11px;
             padding: 4px 10px;
             border-radius: 20px;
-            background: rgba(0,0,0,0.5);
+            background: rgba(211, 231, 255, 0.8);
         }
 
         .wish-status.approved {
-            background: rgba(78, 204, 163, 0.2);
-            color: #4ecca3;
+            background: rgba(168, 216, 255, 0.35);
+            color: #33465d;
         }
 
         .wish-status.pending {
-            background: rgba(255, 215, 0, 0.2);
-            color: #ffd700;
+            background: rgba(201, 228, 255, 0.5);
+            color: #33465d;
         }
 
         .wish-status.purchased {
-            background: rgba(78, 204, 163, 0.1);
-            color: #4ecca3;
+            background: rgba(168, 216, 255, 0.3);
+            color: #33465d;
         }
 
         .wish-actions {
@@ -344,61 +344,61 @@
 
         .buy-btn {
             flex: 1;
-            background: linear-gradient(135deg, #4ecca3, #3ba87f);
+            background: linear-gradient(135deg, #a8d8ff, #89cff0);
             border: none;
             padding: 10px;
             border-radius: 30px;
-            color: white;
+            color: #33465d;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-            box-shadow: 0 4px 15px rgba(78,204,163,0.3);
+            box-shadow: 0 4px 15px rgba(114,189,232,0.3);
         }
 
         .buy-btn:hover:not(.disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(78,204,163,0.5);
-            background: linear-gradient(135deg, #5dd8b1, #4ecca3);
+            box-shadow: 0 8px 25px rgba(114,189,232,0.45);
+            background: linear-gradient(135deg, #b8defd, #89cff0);
         }
 
         .approve-btn {
-            background: rgba(78, 204, 163, 0.2);
-            border: 1px solid #4ecca3;
+            background: rgba(168, 216, 255, 0.3);
+            border: 1px solid #72bde8;
             padding: 8px 15px;
             border-radius: 30px;
-            color: #4ecca3;
+            color: #33465d;
             cursor: pointer;
             transition: all 0.2s ease;
         }
 
         .approve-btn:hover {
-            background: rgba(78, 204, 163, 0.3);
-            box-shadow: 0 4px 12px rgba(78,204,163,0.3);
+            background: rgba(168, 216, 255, 0.4);
+            box-shadow: 0 4px 12px rgba(114,189,232,0.3);
             transform: translateY(-1px);
         }
 
         .reject-btn {
-            background: rgba(233, 69, 96, 0.2);
-            border: 1px solid #e94560;
+            background: rgba(201, 228, 255, 0.6);
+            border: 1px solid #72bde8;
             padding: 8px 15px;
             border-radius: 30px;
-            color: #e94560;
+            color: #33465d;
             cursor: pointer;
             transition: all 0.2s ease;
         }
 
         .reject-btn:hover {
-            background: rgba(233, 69, 96, 0.3);
-            box-shadow: 0 4px 12px rgba(233,69,96,0.3);
+            background: rgba(168, 216, 255, 0.45);
+            box-shadow: 0 4px 12px rgba(114,189,232,0.3);
             transform: translateY(-1px);
         }
 
         .price-input {
-            background: rgba(0,0,0,0.5);
-            border: 1px solid #ffd700;
+            background: rgba(248, 252, 255, 0.95);
+            border: 1px solid #72bde8;
             border-radius: 30px;
             padding: 8px 12px;
-            color: #ffd700;
+            color: #33465d;
             width: 80px;
             text-align: center;
         }
@@ -411,7 +411,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.9);
+            background: rgba(49, 67, 89, 0.35);
             z-index: 1000;
             justify-content: center;
             align-items: center;
@@ -422,17 +422,17 @@
         }
 
         .modal-content {
-            background: rgba(26, 26, 46, 0.95);
+            background: rgba(226, 240, 255, 0.96);
             backdrop-filter: blur(10px);
             border-radius: 30px;
             padding: 30px;
             max-width: 500px;
             width: 90%;
-            border: 1px solid rgba(78, 204, 163, 0.5);
+            border: 1px solid rgba(137, 207, 240, 0.6);
         }
 
         .modal-content h3 {
-            color: white;
+            color: #33465d;
             font-size: 24px;
             margin-bottom: 20px;
         }
@@ -442,10 +442,10 @@
             width: 100%;
             padding: 12px 15px;
             margin-bottom: 15px;
-            background: rgba(44, 62, 80, 0.8);
-            border: 1px solid rgba(78, 204, 163, 0.3);
+            background: rgba(248, 252, 255, 0.95);
+            border: 1px solid rgba(137, 207, 240, 0.55);
             border-radius: 12px;
-            color: white;
+            color: #33465d;
             font-size: 14px;
             font-family: 'Inter', sans-serif;
         }
@@ -471,7 +471,7 @@
         }
 
         .icon-option.selected {
-            background: rgba(78, 204, 163, 0.3);
+            background: rgba(168, 216, 255, 0.42);
             transform: scale(1.1);
         }
 
@@ -482,29 +482,29 @@
         }
 
         .modal-save {
-            background: #4ecca3;
+            background: #89cff0;
             border: none;
             padding: 10px 25px;
             border-radius: 30px;
-            color: white;
+            color: #33465d;
             cursor: pointer;
         }
 
         .modal-cancel {
-            background: rgba(233, 69, 96, 0.2);
-            border: 1px solid #e94560;
+            background: rgba(201, 228, 255, 0.6);
+            border: 1px solid #72bde8;
             padding: 10px 25px;
             border-radius: 30px;
-            color: #e94560;
+            color: #33465d;
             cursor: pointer;
         }
 
         .empty-state {
             text-align: center;
             padding: 60px;
-            background: rgba(15, 15, 26, 0.6);
+            background: rgba(226, 240, 255, 0.88);
             border-radius: 20px;
-            color: rgba(255, 255, 255, 0.5);
+            color: rgba(51, 70, 93, 0.72);
         }
 
         .empty-state-icon {
@@ -584,10 +584,10 @@
         <div class="modal-content" style="max-width: 440px;">
             <h3>Обрезка картинки</h3>
             <div style="display:flex; justify-content:center;">
-                <canvas id="cropper-canvas" width="280" height="280" style="width: 280px; height: 280px; border-radius: 22px; background: rgba(0,0,0,0.25); border: 1px solid rgba(78, 204, 163, 0.25); touch-action: none;"></canvas>
+                <canvas id="cropper-canvas" width="280" height="280" style="width: 280px; height: 280px; border-radius: 22px; background: rgba(211,231,255,0.7); border: 1px solid rgba(137, 207, 240, 0.45); touch-action: none;"></canvas>
             </div>
             <div style="margin-top: 16px;">
-                <label style="display:block; color: rgba(255,255,255,0.7); font-size: 13px; font-weight: 500; margin-bottom: 8px;">Масштаб</label>
+                <label style="display:block; color: rgba(51,70,93,0.82); font-size: 13px; font-weight: 500; margin-bottom: 8px;">Масштаб</label>
                 <input id="cropper-zoom" type="range" min="1" max="3" step="0.01" value="1" style="width: 100%;">
             </div>
             <div class="modal-buttons" style="margin-top: 18px;">
@@ -863,13 +863,13 @@ function renderContent() {
                 <!-- Заголовок -->
                 <div style="text-align: center; margin-bottom: 28px;">
                     <div style="font-size: 48px; margin-bottom: 8px;">✨</div>
-                    <h3 style="color: #ffd700; font-size: 26px; font-weight: 700; margin: 0;">Новое желание</h3>
-                    <p style="color: rgba(255,255,255,0.5); font-size: 13px; margin-top: 6px;">Опиши свою мечту и назначь цену</p>
+                    <h3 style="color: #33465d; font-size: 26px; font-weight: 700; margin: 0;">Новое желание</h3>
+                    <p style="color: rgba(51,70,93,0.7); font-size: 13px; margin-top: 6px;">Опиши свою мечту и назначь цену</p>
                 </div>
                 
                 <!-- Фото -->
                 <div style="margin-bottom: 22px;">
-                    <label style="color: rgba(255,255,255,0.7); font-size: 13px; margin-bottom: 8px; display: block;">📸 Изображение</label>
+                    <label style="color: rgba(51,70,93,0.82); font-size: 13px; margin-bottom: 8px; display: block;">📸 Изображение</label>
                     <div id="wish-image-preview" style="
                         width: 100%; height: 180px; 
                         background: rgba(44,62,80,0.5); 
@@ -879,7 +879,7 @@ function renderContent() {
                         cursor: pointer; transition: all 0.2s;
                         overflow: hidden; position: relative;
                     " onclick="document.getElementById('wish-image-file').click()">
-                        <div id="wish-image-placeholder" style="text-align: center; color: rgba(255,255,255,0.4);">
+                        <div id="wish-image-placeholder" style="text-align: center; color: rgba(51,70,93,0.62);">
                             <div style="font-size: 40px; margin-bottom: 8px;">🖼️</div>
                             <div style="font-size: 13px;">Нажмите чтобы загрузить фото</div>
                         </div>
@@ -889,37 +889,37 @@ function renderContent() {
                     <input type="url" id="wish-image-url" placeholder="Или вставьте ссылку на изображение" style="
                         width: 100%; padding: 12px 14px; margin-top: 10px;
                         background: rgba(44,62,80,0.6); border: 1px solid rgba(78,204,163,0.2);
-                        border-radius: 14px; color: #fff; font-size: 13px;
+                        border-radius: 14px; color: #33465d; font-size: 13px;
                     ">
                 </div>
                 
                 <!-- Название -->
                 <div style="margin-bottom: 16px;">
-                    <label style="color: rgba(255,255,255,0.7); font-size: 13px; margin-bottom: 8px; display: block;">📝 Название</label>
+                    <label style="color: rgba(51,70,93,0.82); font-size: 13px; margin-bottom: 8px; display: block;">📝 Название</label>
                     <input type="text" id="wish-title" placeholder="Что ты хочешь?" autocomplete="off" style="
                         width: 100%; padding: 14px 16px;
                         background: rgba(44,62,80,0.6); border: 1px solid rgba(78,204,163,0.2);
-                        border-radius: 14px; color: #fff; font-size: 15px; outline: none;
+                        border-radius: 14px; color: #33465d; font-size: 15px; outline: none;
                     ">
                 </div>
                 
                 <!-- Описание -->
                 <div style="margin-bottom: 16px;">
-                    <label style="color: rgba(255,255,255,0.7); font-size: 13px; margin-bottom: 8px; display: block;">📄 Описание</label>
+                    <label style="color: rgba(51,70,93,0.82); font-size: 13px; margin-bottom: 8px; display: block;">📄 Описание</label>
                     <textarea id="wish-description" placeholder="Опиши подробнее..." style="
                         width: 100%; padding: 14px 16px; min-height: 80px; resize: vertical;
                         background: rgba(44,62,80,0.6); border: 1px solid rgba(78,204,163,0.2);
-                        border-radius: 14px; color: #fff; font-size: 14px; outline: none;
+                        border-radius: 14px; color: #33465d; font-size: 14px; outline: none;
                     "></textarea>
                 </div>
                 
                 <!-- Ссылка на товар -->
                 <div style="margin-bottom: 20px;">
-                    <label style="color: rgba(255,255,255,0.7); font-size: 13px; margin-bottom: 8px; display: block;">🔗 Ссылка на товар</label>
+                    <label style="color: rgba(51,70,93,0.82); font-size: 13px; margin-bottom: 8px; display: block;">🔗 Ссылка на товар</label>
                     <input type="url" id="wish-link" placeholder="https://..." style="
                         width: 100%; padding: 14px 16px;
                         background: rgba(44,62,80,0.6); border: 1px solid rgba(78,204,163,0.2);
-                        border-radius: 14px; color: #fff; font-size: 14px; outline: none;
+                        border-radius: 14px; color: #33465d; font-size: 14px; outline: none;
                     ">
                 </div>
                 
@@ -929,21 +929,21 @@ function renderContent() {
         width: 44px; height: 44px; min-width: 44px; flex-shrink: 0;
         border-radius: 50%;
         background: rgba(233,69,96,0.2); border: 1px solid rgba(233,69,96,0.4);
-        color: #e94560; font-size: 22px; cursor: pointer;
+        color: #33465d; font-size: 22px; cursor: pointer;
         display: flex; align-items: center; justify-content: center;
     ">−</button>
     <input type="number" id="wish-price" value="50" style="
         flex: 1 1 auto;
         min-width: 60px;
         text-align: center; font-size: 28px; font-weight: 700;
-        background: transparent; border: none; color: #ffd700;
+        background: transparent; border: none; color: #33465d;
         outline: none; padding: 8px 4px;
     ">
     <button id="price-plus" style="
         width: 44px; height: 44px; min-width: 44px; flex-shrink: 0;
         border-radius: 50%;
         background: rgba(78,204,163,0.2); border: 1px solid rgba(78,204,163,0.4);
-        color: #4ecca3; font-size: 22px; cursor: pointer;
+        color: #33465d; font-size: 22px; cursor: pointer;
         display: flex; align-items: center; justify-content: center;
     ">+</button>
 </div>
@@ -952,9 +952,9 @@ function renderContent() {
                 <!-- Кнопка -->
                 <button id="submit-wish" style="
                     width: 100%; padding: 16px;
-                    background: linear-gradient(135deg, #4ecca3, #2c8f6e);
+                    background: linear-gradient(135deg, #a8d8ff, #89cff0);
                     border: none; border-radius: 60px;
-                    color: #fff; font-size: 17px; font-weight: 700;
+                    color: #33465d; font-size: 17px; font-weight: 700;
                     cursor: pointer; transition: all 0.2s;
                     letter-spacing: 0.5px;
                 ">✨ Отправить желание</button>
@@ -1265,14 +1265,20 @@ function previewWishImage(input) {
         }
 
         function getAvatarHtml(avatar, name) {
-            if (avatar && avatar.startsWith('/assets/uploads/')) {
-                const fullUrl = 'http://localhost:3001' + avatar;
-                return `<img src="${escapeHtml(fullUrl)}" style="width:60px;height:60px;border-radius:50%;object-fit:cover;" alt="avatar">`;
+            if (typeof avatar === 'string' && avatar.trim().length > 0) {
+                const trimmed = avatar.trim();
+                if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+                    return `<img src="${escapeHtml(trimmed)}" style="width:60px;height:60px;border-radius:50%;object-fit:cover;" alt="avatar">`;
+                }
+                if (trimmed.startsWith('/uploads/') || trimmed.startsWith('/assets/uploads/') || trimmed.includes('/uploads/')) {
+                    const fullUrl = trimmed.startsWith('/') ? 'http://localhost:3001' + trimmed : 'http://localhost:3001/' + trimmed;
+                    return `<img src="${escapeHtml(fullUrl)}" style="width:60px;height:60px;border-radius:50%;object-fit:cover;" alt="avatar">`;
+                }
             }
             const base = (name || 'П').trim();
             const parts = base.split(/\s+/).filter(Boolean).slice(0, 2);
             const initials = parts.map(p => p[0]?.toUpperCase() || '').join('') || 'U';
-            return `<span style="font-size:18px;font-weight:700;color:#fff;">${escapeHtml(initials)}</span>`;
+            return `<span style="font-size:18px;font-weight:700;color:#33465d;">${escapeHtml(initials)}</span>`;
         }
 
         // ========== КРОППЕР ==========
